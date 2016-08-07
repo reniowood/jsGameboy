@@ -1,0 +1,27 @@
+{
+  "name": "js-gameboy",
+  "version": "1.0.0",
+  "description": "NES emulator written in javascript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "watch": "webpack --watch"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.11.4",
+    "babel-preset-es2015": "^6.13.2",
+    "webpack": "^1.13.1"
+  },
+  "dependencies": {
+    "babel-loader": "^6.2.4",
+    "webpack": "^1.13.1"
+  }
+}
