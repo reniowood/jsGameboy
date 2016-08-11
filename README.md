@@ -1,1 +1,1 @@
-NES emulator written in javascript.
+GB emulator written in javascript.
