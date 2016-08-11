@@ -2,6 +2,9 @@ export default class GPU {
   constructor(CPU) {
     this.CPU = CPU;
 
+    this.reset();
+  }
+  reset() {
     const canvas = document.getElementById('screen');
 
     this.canvas = canvas.getContext('2d');
@@ -27,6 +30,10 @@ export default class GPU {
     for (let i=0; i<8192; i+=1) {
       this.videoRAM.push(0);
     }
+    this.OAM = [];
+    for (let i=0; i<256; i+=1) {
+      this.OAM.push(0);
+    }
 
     this.tiles = [];
     for (let i=0; i<384; i+=1) {
@@ -38,36 +45,40 @@ export default class GPU {
 
     this.palette = [
       [255, 255, 255, 255],
-      [255, 255, 255, 255],
-      [255, 255, 255, 255],
-      [255, 255, 255, 255]
+      [0, 0, 0, 255],
+      [0, 0, 0, 255],
+      [0, 0, 0, 255]
     ];
 
+    // LCDC
     this.screenX = 0;
     this.screenY = 0;
-    this.isBackgroundOn = false;
+    this.isBackgroundOn = true;
     this.isSpritesOn = false;
     this.spriteSize = 8*8;
     this.bgTileMap = 0;
     this.bgTileSet = 0;
     this.isWindowOn = false;
     this.windowTileMap = 0;
-    this.isDispalyOn = false;
+    this.isDisplayOn = true;
+
+    // STAT
+    this.STAT = 0xff41;
+
+    this.registers = [];
   }
   run() {
-    this.cycles += this.CPU.cycles.clock;
-
     switch (this.mode) {
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
-          this.mode = this.MODE.SCANLINE_VRAM;
+          this.writeByte(this.STAT, 0x03);
           this.cycles = 0;
         }
 
         break;
       case this.MODE.SCANLINE_VRAM:
         if (this.cycles >= 172) {
-          this.mode = this.MODE.HBLANK;
+          this.writeByte(this.STAT, 0x00);
           this.cycles = 0;
 
           this.render();
@@ -77,10 +88,10 @@ export default class GPU {
       case this.MODE.HBLANK:
         if (this.cycles >= 202) {
           if (this.line === 143) {
-            this.mode = this.MODE.VBLANK;
+            this.writeByte(this.STAT, 0x01);
             this.canvas.putImageData(this.screen, 0, 0);
           } else {
-            this.mode = this.MODE.SCANLINE_OAM;
+            this.writeByte(this.STAT, 0x02);
             this.line += 1;
           }
 
@@ -89,9 +100,14 @@ export default class GPU {
 
         break;
       case this.MODE.VBLANK:
-        if (this.cycles >= 4560) {
-          this.mode = this.MODE.SCANLINE_OAM;
-          this.line = 0;
+        if (this.cycles >= 456) {
+          this.cycles = 0;
+          this.line += 1;
+
+          if (this.line === 153) {
+            this.writeByte(this.STAT, 0x02);
+            this.line = 0;
+          }
         }
         break;
     }
@@ -102,7 +118,7 @@ export default class GPU {
 
     const y = (baseAddr >> 1) & 0x07;
     for (let x=0; x<8; x+=1) {
-      this.tiles[tileIndex][y][x] = ((this.videoRAM[baseAddr] >> x) & 0x01) | (((this.videoRAM[baseAddr + 1] >> x) & 0x01) << 1);
+      this.tiles[tileIndex][y][7 - x] = ((this.videoRAM[baseAddr] >> x) & 0x01) | (((this.videoRAM[baseAddr + 1] >> x) & 0x01) << 1);
     }
   }
   render() {
@@ -115,26 +131,23 @@ export default class GPU {
     const canvasOffset = this.line * 160 * 4;
     let tileOffset = tileMapBase + tileMapY * 32 + tileMapX;
     let x = xInTile;
-    let pxNum = 0;
-    while (pxNum < 160) {
+    for (let pxNum = 0; pxNum < 160; pxNum += 1) {
       const tile = this.videoRAM[tileOffset];
       const color = this.palette[this.tiles[tile][yInTile][x]];
 
-      this.screen.data[canvasOffset + pxNum] = color[0];
-      this.screen.data[canvasOffset + pxNum + 1] = color[1];
-      this.screen.data[canvasOffset + pxNum + 2] = color[2];
-      this.screen.data[canvasOffset + pxNum + 3] = color[3];
+      this.screen.data[canvasOffset + pxNum * 4] = color[0];
+      this.screen.data[canvasOffset + pxNum * 4 + 1] = color[1];
+      this.screen.data[canvasOffset + pxNum * 4 + 2] = color[2];
+      this.screen.data[canvasOffset + pxNum * 4 + 3] = color[3];
 
-      pxNum += 1;
-      x += 1;
-      if (x === 8) {
-        x = 0;
+      x = (x + 1) % 8;
+      if (x === 0) {
         tileOffset += 1;
       }
     }
   }
   readByte(addr) {
-    switch (addr & 0x00f0) {
+    switch (addr & 0x00ff) {
       case 0x40: // LCD and GPU control
         return (this.isBackgroundOn ? 0x01 : 0x00) |
                (this.isSpritesOn ? 0x02 : 0x00) |
@@ -143,17 +156,23 @@ export default class GPU {
                (this.bgTileSet === 1 ? 0x10 : 0x00) |
                (this.isWindowOn ? 0x20 : 0x00) |
                (this.windowTileMap === 1 ? 0x40 : 0x00) |
-               (this.isDispalyOn ? 0x80 : 0x00);
+               (this.isDisplayOn ? 0x80 : 0x00);
+      case 0x41: // STAT
+        return this.mode;
       case 0x42: // Scroll-Y
         return this.screenY;
       case 0x43: // Scroll-X
         return this.screenX;
       case 0x44: // Current scan line
         return this.line;
+      default:
+        return this.registers[addr - 0xff40];
     }
   }
   writeByte(addr, value) {
-    switch (addr & 0x00f0) {
+    this.registers[addr - 0xff40] = value;
+
+    switch (addr & 0x00ff) {
       case 0x40: // LCD and GPU control
         this.isBackgroundOn = (value & 0x01) ? true : false;
         this.isSpritesOn = (value & 0x02) ? true : false;
@@ -162,9 +181,32 @@ export default class GPU {
         this.bgTileSet = (value & 0x10) ? 1 : 0;
         this.isWindowOn = (value & 0x20) ? true : false;
         this.windowTileMap = (value & 0x40) ? 1 : 0;
-        this.isDispalyOn = (value & 0x80) ? true : false;
+        this.isDisplayOn = (value & 0x80) ? true : false;
 
         return value;
+      case 0x41: // STAT
+        switch (value & 0x03) {
+          case 0x00: // HBLANK
+            this.mode = this.MODE.HBLANK;
+
+            break;
+          case 0x01: // VBLANK
+            this.mode = this.MODE.VBLANK;
+
+            break;
+          case 0x02: // SCANLINE_OAM
+            this.mode = this.MODE.SCANLINE_OAM;
+
+            break;
+          case 0x03: // SCANLINE_VRAM
+            this.mode = this.MODE.SCANLINE_VRAM;
+
+            break;
+        }
+
+        this.cycles = 0;
+
+        break;
       case 0x42: // Scroll-Y
         return this.screenY = value;
       case 0x43: // Scroll-X
@@ -174,12 +216,20 @@ export default class GPU {
           switch ((value >> i*2) & 0x03) {
             case 0:
               this.palette[i] = [255, 255, 255, 255];
+
+              break;
             case 1:
               this.palette[i] = [192, 192, 192, 255];
+
+              break;
             case 2:
               this.palette[i] = [96, 96, 96, 255];
+
+              break;
             case 3:
-              this.palette[i] = [0, 0, 0, 0, 255];
+              this.palette[i] = [0, 0, 0, 255];
+
+              break;
           }
         }
 

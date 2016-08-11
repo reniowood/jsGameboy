@@ -3,6 +3,10 @@ export default class MMU {
     this.CPU = CPU;
     this.GPU = GPU;
 
+    this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
+    this.reset();
+  }
+  reset() {
     this.isInBIOS = true;
 
     this.BIOS = [
@@ -23,7 +27,6 @@ export default class MMU {
       0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
       0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
     ]; // 0x0000 - 0x00ff
-    this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
     // Video RAM: 0x8000 - 0x9fff
     this.cartridgeRAM = []; // 0xa000 - 0xbfff
     for (let i=0; i<8192; i+=1) {
@@ -141,7 +144,9 @@ export default class MMU {
       case 0x8000:
       case 0x9000:
         this.GPU.videoRAM[addr & 0x1fff] = value;
-        this.GPU.updateTile();
+        if (addr < 0x9800) {
+          this.GPU.updateTile(addr, value);
+        }
 
         return this.GPU.videoRAM[addr & 0x1fff];
       case 0xa000:

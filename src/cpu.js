@@ -3,80 +3,13 @@ import MMU from './mmu';
 
 export default class CPU {
   constructor() {
-    this.cycles = {
-      machine: 0,
-      clock: 0,
-    };
-
     this.GPU = new GPU(this);
     this.MMU = new MMU(this, this.GPU);
 
-    function registerGenerator() {
-      let register = 0;
-
-      return (value, index) => {
-        if (value === undefined) {
-          return register;
-        }
-        
-        if (index === undefined) {
-          register = value;
-        } else if (value) {
-          register |= (1 << index);
-        } else {
-          register &= ~(1 << index);
-        }
-
-       return register &= 0xff;
-      };
-    }
-
-    this.registers = {
-      A: registerGenerator(),
-      F: (() => {
-        let register = registerGenerator();
-
-        register.Z = (set) => ( register(set, 4) );
-        register.N = (set) => ( register(set, 5) );
-        register.H = (set) => ( register(set, 6) );
-        register.C = (set) => ( register(set, 7) );
-
-        return register;
-      })(),
-      B: registerGenerator(),
-      C: registerGenerator(),
-      D: registerGenerator(),
-      E: registerGenerator(),
-      H: registerGenerator(),
-      L: registerGenerator(),
-      SP: registerGenerator(),
-      PC: registerGenerator(),
-      HL: (value) => {
-        if (value === undefined) {
-          return this.registers.H() << 0xff + this.registers.L();
-        }
-
-        this.registers.H((value >> 0xff) & 0xff);
-        this.registers.L(value & 0xff);
-      },
-      BC: (value) => {
-        if (value === undefined) {
-          return this.registers.B() << 0xff + this.registers.C();
-        }
-
-        this.registers.B((value >> 0xff) & 0xff);
-        this.registers.C(value & 0xff);
-      },
-      DE: (value) => {
-        if (value === undefined) {
-          return this.registers.D() << 0xff + this.registers.E();
-        }
-
-        this.registers.D((value >> 0xff) & 0xff);
-        this.registers.E(value & 0xff);
-      },
-    };
-
+    this.reset();
+    this.updateInstMap();
+  }
+  updateInstMap() {
     this.instMap = [
       () => { this.NOP(); this.updateCycles(1, 4); },
       () => {
@@ -128,7 +61,6 @@ export default class CPU {
       () => { this.RLA(); this.updateCycles(1, 4); },
       () => {
         this.JR_n(this.MMU.readByte(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 12);
       },
       () => { this.ADD_HLn(this.registers.DE); this.updateCycles(1, 8); },
@@ -144,7 +76,6 @@ export default class CPU {
       () => { this.RRA(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('NZ', this.MMU.readByte(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, isActionTaken ? 12 : 8);
       },
       () => {
@@ -168,7 +99,6 @@ export default class CPU {
       () => { this.DAA(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('Z', this.MMU.readByte(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => { this.ADD_HLn(this.registers.HL); this.updateCycles(1, 8); },
@@ -188,7 +118,6 @@ export default class CPU {
       () => { this.CPL(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('NC', this.MMU.readByte(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => {
@@ -212,7 +141,6 @@ export default class CPU {
       () => { this.SCF(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('C', this.MMU.readByte(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => { this.ADD_HLn(this.registers.SP); this.updateCycles(1, 8); },
@@ -364,18 +292,15 @@ export default class CPU {
       },
       () => { this.POP_nn(this.registers.BC); this.updateCycles(1, 12); },
       () => {
-        this.JP_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
+        const isActionTaken = this.JP_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
         this.updateCycles(3, isActionTaken ? 16 : 12);
       },
       () => {
         this.JP_nn(this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 16);
+        this.updateCycles(3, 12);
       },
       () => {
         this.CALL_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 24 : 12);
       },
       () => { this.PUSH_nn(this.registers.BC); this.updateCycles(1, 16); },
@@ -392,25 +317,21 @@ export default class CPU {
       () => { this.RET(); this.updateCycles(1, 16); },
       () => {
         const isActionTaken = this.JP_cc_nn('Z', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 16 : 12);
       },
       () => {
         const opcode = this.MMU.readByte(this.registers.PC());
         this.registers.PC(this.registers.PC() + 1);
-        console.log('prefix cb: ' + opcode);
         this.cbInstMap[opcode]();
         this.registers.PC(this.registers.PC() & 0xffff);
         this.updateCycles(1, 4);
       },
       () => {
         const isActionTaken = this.CALL_cc_nn('Z', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 24 : 12);
       },
       () => {
         this.CALL_nn(this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, 24);
       },
       () => {
@@ -429,13 +350,11 @@ export default class CPU {
       () => { this.POP_nn(this.registers.DE); this.updateCycles(1, 12); },
       () => {
         const isActionTaken = this.JP_cc_nn('NC', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 16 : 12);
       },
       this.NOP,
       () => {
         const isActionTaken = this.CALL_cc_nn('NC', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 24 : 12);
       },
       () => { this.PUSH_nn(this.registers.DE); this.updateCycles(1, 16); },
@@ -452,13 +371,11 @@ export default class CPU {
       () => { this.RETI(); this.updateCycles(1, 16); },
       () => {
         const isActionTaken = this.JP_cc_nn('C', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 16 : 12);
       },
       this.NOP,
       () => {
         const isActionTaken = this.CALL_cc_nn('C', this.MMU.readWord(this.registers.PC()));
-        this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, isActionTaken ? 24 : 12);
       },
       this.NOP,
@@ -485,7 +402,7 @@ export default class CPU {
       this.NOP,
       () => { this.PUSH_nn(this.registers.HL); this.updateCycles(1, 16); },
       () => {
-        this.AND_An(this.MMU.readByte(this.registers.PC()));
+        this.AND_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -503,7 +420,7 @@ export default class CPU {
         this.updateCycles(1, 4);
       },
       () => {
-        this.LD_n_A((value) => (this.MMU.writeByte(this.MMU.readWord(this.registers.PC())), value));
+        this.LD_n_A((value) => (this.MMU.writeByte(this.MMU.readWord(this.registers.PC()), value)));
         this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, 16);
       },
@@ -511,7 +428,7 @@ export default class CPU {
       this.NOP,
       this.NOP,
       () => {
-        this.XOR_n(this.MMU.readByte(this.registers.PC()));
+        this.XOR_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -642,20 +559,113 @@ export default class CPU {
       }
     });
   }
+  reset() {
+    this.cycles = {
+      machine: 0,
+      clock: 0,
+    };
+
+    function registerGenerator(is16Bits) {
+      let register = 0;
+
+      return (value, index) => {
+        if (value === undefined) {
+          if (index !== undefined) {
+            return (register >> index) & 0x01;
+          } else {
+            return register;
+          }
+        }
+        
+        if (index === undefined) {
+          register = value;
+        } else if (value) {
+          register |= (1 << index);
+        } else {
+          register &= ~(1 << index);
+        }
+
+        if (is16Bits) {
+          return register &= 0xffff;
+        } else {
+          return register &= 0xff;
+        }
+      };
+    }
+
+    this.registers = {
+      A: registerGenerator(),
+      F: (() => {
+        let register = registerGenerator();
+
+        register.Z = (set) => ( register(set, 7) );
+        register.N = (set) => ( register(set, 6) );
+        register.H = (set) => ( register(set, 5) );
+        register.C = (set) => ( register(set, 4) );
+
+        return register;
+      })(),
+      B: registerGenerator(),
+      C: registerGenerator(),
+      D: registerGenerator(),
+      E: registerGenerator(),
+      H: registerGenerator(),
+      L: registerGenerator(),
+      SP: registerGenerator(true),
+      PC: registerGenerator(true),
+      HL: (value) => {
+        if (value === undefined) {
+          return this.registers.H() << 8 | this.registers.L();
+        }
+
+        this.registers.H((value >> 8) & 0xff);
+        this.registers.L(value & 0xff);
+      },
+      BC: (value) => {
+        if (value === undefined) {
+          return this.registers.B() << 8 | this.registers.C();
+        }
+
+        this.registers.B((value >> 8) & 0xff);
+        this.registers.C(value & 0xff);
+      },
+      DE: (value) => {
+        if (value === undefined) {
+          return this.registers.D() << 8 | this.registers.E();
+        }
+
+        this.registers.D((value >> 8) & 0xff);
+        this.registers.E(value & 0xff);
+      },
+      AF: (value) => {
+        if (value === undefined) {
+          return this.registers.A() << 8 | this.registers.F();
+        }
+
+        this.registers.A((value >> 8) & 0xff);
+        this.registers.F(value & 0xff);
+      },
+    };
+  }
+  step() {
+    const opcode = this.MMU.readByte(this.registers.PC());
+    this.registers.PC(this.registers.PC() + 1);
+    this.instMap[opcode]();
+    this.registers.PC(this.registers.PC() & 0xffff);
+
+    this.GPU.run();
+  }
   updateCycles(m, c) {
     this.cycles.machine += m;
     this.cycles.clock += c;
+    this.GPU.cycles += c;
   }
-  run() {
-    setInterval(() => {
-      const opcode = this.MMU.readByte(this.registers.PC());
-      this.registers.PC(this.registers.PC() + 1);
-      console.log(opcode);
-      this.instMap[opcode]();
-      this.registers.PC(this.registers.PC() & 0xffff);
+  signed(n) {
+    if (n & 0x80) {
+      n = -((~n + 1) & 0xff);
+    }
 
-      this.GPU.run();
-    }, 1000/30);
+    return n;
   }
   // 8-bits Loads
   LD_nn_n(nn, n) {
@@ -671,16 +681,16 @@ export default class CPU {
     n(this.registers.A());
   }
   LD_A_C() {
-    this.registers.A(this.MMU.readByte(0xff00 + this.registers.C()));
+    this.registers.A(this.MMU.readByte(0xff00 + this.signed(this.registers.C())));
   }
   LD_C_A() {
-    this.MMU.writeByte(0xff00 + this.registers.C(), this.registers.A());
+    this.MMU.writeByte(0xff00 + this.signed(this.registers.C()), this.registers.A());
   }
   LDH_n_A(n) {
-    this.MMU.writeByte(0xff00 + n, this.registers.A());
+    this.MMU.writeByte(0xff00 + this.signed(n), this.registers.A());
   }
   LDH_A_n(n) {
-    this.registers.A(this.MMU.readByte(0xff00 + n));
+    this.registers.A(this.MMU.readByte(0xff00 + this.signed(n)));
   }
   // 16-bits Loads
   LD_n_nn(n, nn) {
@@ -690,27 +700,27 @@ export default class CPU {
     this.registers.SP(this.registers.HL());
   }
   LDHL_SP_n(n) {
-    this.setFlag(false, false, isCarry(this.registers.SP(), n), is16BitsCarry(this.registers.SP(), n));
-    this.registers.HL(this.registers.SP() + n);
+    this.setFlag(false, false, this.isCarry(this.registers.SP(), n), this.is16BitsCarry(this.registers.SP(), n));
+    this.registers.HL(this.registers.SP() + this.signed(n));
   }
   LD_nn_SP(nn) {
     this.MMU.writeWord(nn & 0xffff, this.registers.SP());
   }
   PUSH_nn(nn) {
-    this.MMU.writeWord(this.registers.SP(), nn() & 0xffff);
+    this.MMU.writeWord(this.registers.SP() - 1, nn() & 0xffff);
     this.registers.SP(this.registers.SP() - 2);
   }
   POP_nn(nn) {
-    nn(this.MMU.readWord(this.registers.SP()));
+    nn(this.MMU.readWord(this.registers.SP() + 1));
     this.registers.SP(this.registers.SP() + 2);
   }
   // Helper methods for ALU
   setFlag(Z, N, H, C) {
     this.registers.F(0);
-    this.registers.F.Z(Z);
-    this.registers.F.N(N);
-    this.registers.F.H(H);
-    this.registers.F.C(C);
+    this.registers.F.Z(Z ? 1 : 0);
+    this.registers.F.N(N ? 1 : 0);
+    this.registers.F.H(H ? 1 : 0);
+    this.registers.F.C(C ? 1 : 0);
   }
   isHalfCarry(...registers) {
     return registers.reduce((sum, register) => (sum += register & 0xf), 0) > 0xf;
@@ -721,11 +731,11 @@ export default class CPU {
   is16BitsCarry(...registers) {
     return registers.reduce((sum, register) => (sum += register), 0) > 0xffff;
   }
-  isNotHalfBorrow(r1, r2) {
-    return (r1 & 0xf) - (r2 & 0xf) >= 0;
+  isHalfBorrow(r1, r2) {
+    return (r1 & 0xf) - (r2 & 0xf) < 0;
   }
-  isNotBorrow(r1, r2) {
-    return r1 - r2 >= 0;
+  isBorrow(r1, r2) {
+    return r1 - r2 < 0;
   }
   // 8-bits ALU
   ADD_An(n) {
@@ -738,45 +748,45 @@ export default class CPU {
     this.registers.A(this.registers.A() + n() + carryFlag);
   }
   SUB_n(n) {
-    this.setFlag(this.registers.A() - n() === 0, false, this.isNotHalfBorrow(this.registers.A(), n()), this.isNotBorrow(this.registers.A(), n()));
+    this.setFlag(this.registers.A() - n() === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
     this.registers.A(this.registers.A() - n());
   }
   SBC_n(n) {
     const carryFlag = this.registers.F.Z() ? 1 : 0;
-    this.setFlag(this.registers.A() - n() + carryFlag === 0, false, this.isNotHalfBorrow(this.registers.A(), n()), this.isNotBorrow(this.registers.A(), n()));
+    this.setFlag(this.registers.A() - n() + carryFlag === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
     this.registers.A(this.registers.A() - n() + carryFlag);
   }
   AND_n(n) {
-    this.setFlag(this.registers.A() & n(), false, true, false);
+    this.setFlag((this.registers.A() & n()) === 0, false, true, false);
     this.registers.A(this.registers.A() & n());
   }
   OR_n(n) {
-    this.setFlag(this.registers.A() | n(), false, false, false);
+    this.setFlag((this.registers.A() | n()) === 0, false, false, false);
     this.registers.A(this.registers.A() | n());
   }
   XOR_n(n) {
-    this.setFlag(this.registers.A() ^ n(), false, false, false);
+    this.setFlag((this.registers.A() ^ n()) === 0, false, false, false);
     this.registers.A(this.registers.A() ^ n());
   }
   CP_n(n) {
-    this.setFlag(this.registers.A() === n(), true, this.isNotHalfBorrow(this.registers.A(), n()), this.isNotBorrow(this.registers.A(), n()));
+    this.setFlag(this.registers.A() === n(), true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
   }
   INC_n(n) {
     this.setFlag(n() + 1 === 0, false, this.isHalfCarry(n(), 1), this.registers.F.C());
     n(n() + 1);
   }
   DEC_n(n) {
-    this.setFlag(n() - 1 === 0, false, this.isNotHalfBorrow(n(), 1), this.registers.F.C());
+    this.setFlag(n() - 1 === 0, true, this.isHalfBorrow(n(), 1), this.registers.F.C());
     n(n() - 1);
   }
   // 16-bits ALU
   ADD_HLn(n) {
-    this.setFlag(this.registers.F.Z(), false, this.isCarry(this.registers.HL(), n()), is16BitsCarry(this.registers.HL(), n()));
-    this.registers.HL(this.registers.HL() + n());
+    this.setFlag(this.registers.F.Z(), false, this.isCarry(this.registers.HL(), this.signed(n())), this.is16BitsCarry(this.registers.HL(), this.signed(n())));
+    this.registers.HL(this.registers.HL() + this.signed(n()));
   }
   ADD_SPn(n) {
-    this.setFlag(false, false, this.isCarry(this.registers.SP(), n()), is16BitsCarry(this.registers.SP(), n()));
-    this.registers.SP(this.registers.SP() + n());
+    this.setFlag(false, false, this.isCarry(this.registers.SP(), this.signed(n())), this.is16BitsCarry(this.registers.SP(), this.signed(n())));
+    this.registers.SP(this.registers.SP() + this.signed(n()));
   }
   INC_nn(nn) {
     nn(nn() + 1);
@@ -902,33 +912,41 @@ export default class CPU {
   }
   // Jumps
   JP_nn(nn) {
-    this.registers.PC(nn << 8 | (nn >> 8) & 0xff);
+    this.registers.PC(nn);
   }
   JP_cc_nn(cc, nn) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
     }
 
-    this.registers.PC(nn << 8 | (nn >> 8) & 0xff);
+    this.registers.PC(nn);
 
     return true;
   }
@@ -936,81 +954,97 @@ export default class CPU {
     this.registers.PC(this.registers.HL());
   }
   JR_n(n) {
-    this.registers.PC(this.registers.PC() + n);
+    this.registers.PC(this.registers.PC() + this.signed(n));
   }
   JR_cc_n(cc, n) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
+          this.registers.PC(this.registers.PC() + 1);
+
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
+          this.registers.PC(this.registers.PC() + 1);
+
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
+          this.registers.PC(this.registers.PC() + 1);
+
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
+          this.registers.PC(this.registers.PC() + 1);
+
           return false;
         }
         break;
     }
 
-    this.registers.PC(this.registers.PC() + n);
+    this.registers.PC(this.registers.PC() + this.signed(n));
 
     return true;
   }
   // Calls
   CALL_nn(nn) {
-    this.MMU.writeWord(this.registers.SP(), this.registers.PC());
-    this.registers.SP(this.registers.SP() - 1);
+    this.MMU.writeWord(this.registers.SP() - 1, this.registers.PC() + 2);
+    this.registers.SP(this.registers.SP() - 2);
 
-    this.registers.PC(nn << 8 | (nn >> 8) & 0xff);
+    this.registers.PC(nn);
   }
   CALL_cc_nn(cc, nn) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
+          this.registers.PC(this.registers.PC() + 2);
+
           return false;
         }
         break;
     }
 
-    this.registers.PC(nn << 8 | (nn >> 8) & 0xff);
+    this.CALL_nn(nn);
 
     return true;
   }
   // Restarts
   RST_n(n) {
     this.MMU.writeWord(this.registers.SP(), this.registers.PC());
-    this.registers.SP(this.registers.SP() - 1);
+    this.registers.SP(this.registers.SP() - 2);
 
     this.registers.PC(n & 0xff);
   }
   RET() {
-    const lowByte = this.MMU.readByte(this.registers.SP());
-    const highByte = this.MMU.readByte(this.registers.SP() + 1);
+    const lowByte = this.MMU.readByte(this.registers.SP() + 1);
+    const highByte = this.MMU.readByte(this.registers.SP() + 2);
 
     this.registers.PC(highByte << 8 | lowByte & 0xff);
     this.registers.SP(this.registers.SP() + 2);
@@ -1039,7 +1073,7 @@ export default class CPU {
         break;
     }
 
-    RET();
+    this.RET();
 
     return true;
   }
