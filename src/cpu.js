@@ -1,10 +1,7 @@
-import GPU from './gpu';
-import MMU from './mmu';
-
 export default class CPU {
-  constructor() {
-    this.GPU = new GPU(this);
-    this.MMU = new MMU(this, this.GPU);
+  constructor(clock, MMU) {
+    this.clock = clock;
+    this.MMU = MMU;
 
     this.reset();
     this.updateInstMap();
@@ -560,11 +557,6 @@ export default class CPU {
     });
   }
   reset() {
-    this.cycles = {
-      machine: 0,
-      clock: 0,
-    };
-
     function registerGenerator(is16Bits) {
       let register = 0;
 
@@ -652,13 +644,9 @@ export default class CPU {
     this.registers.PC(this.registers.PC() + 1);
     this.instMap[opcode]();
     this.registers.PC(this.registers.PC() & 0xffff);
-
-    this.GPU.run();
   }
   updateCycles(m, c) {
-    this.cycles.machine += m;
-    this.cycles.clock += c;
-    this.GPU.cycles += c;
+    this.clock.cycles += c;
   }
   signed(n) {
     if (n & 0x80) {

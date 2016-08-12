@@ -1,6 +1,5 @@
 export default class MMU {
-  constructor(CPU, GPU) {
-    this.CPU = CPU;
+  constructor(GPU) {
     this.GPU = GPU;
 
     this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
@@ -55,10 +54,6 @@ export default class MMU {
         if (this.isInBIOS) {
           if (addr < 0x0100) {
             return this.BIOS[addr];
-          }
-
-          if (this.CPU.registers.PC() === 0x0100) {
-            this.isInBIOS = false;
           }
         }
 
@@ -128,10 +123,6 @@ export default class MMU {
         if (this.isInBIOS) {
           if (addr < 0x0100) {
             return this.BIOS[addr];
-          }
-
-          if (this.CPU.registers.PC() === 0x0100) {
-            this.isInBIOS = false;
           }
         }
 

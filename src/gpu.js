@@ -1,6 +1,6 @@
 export default class GPU {
-  constructor(CPU) {
-    this.CPU = CPU;
+  constructor(clock) {
+    this.clock = clock;
 
     this.reset();
   }
@@ -23,7 +23,6 @@ export default class GPU {
       SCANLINE_VRAM: 3,
     };
     this.mode = this.MODE.SCANLINE_OAM; 
-    this.cycles = 0;
     this.line = 0;
 
     this.videoRAM = [];
@@ -67,7 +66,9 @@ export default class GPU {
 
     this.registers = [];
   }
-  run() {
+  step() {
+    this.cycles = this.clock.cycles;
+
     switch (this.mode) {
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
