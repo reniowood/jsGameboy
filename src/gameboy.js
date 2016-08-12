@@ -22,10 +22,14 @@ export default class Gameboy {
       do {
         this.step();
       } while (this.CPU.registers.PC() !== breakPoint);
+
+      return true;
     } else {
       this.stop = setInterval(() => {
         this.frame();
       }, 16);
+
+      return false;
     }
   }
   pause() {

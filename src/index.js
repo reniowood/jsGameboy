@@ -1,5 +1,19 @@
 import Gameboy from './gameboy';
 
+function setRun() {
+  document.getElementById('run').disabled = true;
+  document.getElementById('pause').disabled = false;
+  document.getElementById('step').disabled = true;
+  document.getElementById('frame').disabled = true;
+}
+
+function setPause() {
+  document.getElementById('run').disabled = false;
+  document.getElementById('pause').disabled = true;
+  document.getElementById('step').disabled = false;
+  document.getElementById('frame').disabled = false;
+}
+
 const gameboy = new Gameboy();
 
 document.getElementById('fileInput').onchange = (event) => {
@@ -17,30 +31,22 @@ document.getElementById('fileInput').onchange = (event) => {
 };
 
 document.getElementById('run').onclick = (event) => {
-  document.getElementById('run').disabled = true;
-  document.getElementById('pause').disabled = false;
-  document.getElementById('step').disabled = true;
-  document.getElementById('frame').disabled = true;
-
-  gameboy.run();
+  setRun();
+  if (gameboy.run()) {
+    setPause();
+  }
   gameboy.updateDebugger();
 };
 
 document.getElementById('pause').onclick = (event) => {
-  document.getElementById('run').disabled = false;
-  document.getElementById('pause').disabled = true;
-  document.getElementById('step').disabled = false;
-  document.getElementById('frame').disabled = false;
+  setPause();
 
   gameboy.pause();
   gameboy.updateDebugger();
 };
 
 document.getElementById('reset').onclick = (event) => {
-  document.getElementById('run').disabled = false;
-  document.getElementById('pause').disabled = true;
-  document.getElementById('step').disabled = false;
-  document.getElementById('frame').disabled = false;
+  setPause();
 
   gameboy.pause();
   gameboy.reset();
