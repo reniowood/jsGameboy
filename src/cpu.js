@@ -341,7 +341,7 @@ export default class CPU {
         this.updateCycles(1, 16);
       },
       () => {
-        this.RET_cc('NC');
+        const isActionTaken = this.RET_cc('NC');
         this.updateCycles(1, isActionTaken ? 20 : 8);
       },
       () => { this.POP_nn(this.registers.DE); this.updateCycles(1, 12); },
@@ -408,7 +408,7 @@ export default class CPU {
         this.updateCycles(2, 16);
       },
       () => {
-        this.ADD_SPn(this.MMU.readByte(this.registers.PC()));
+        this.ADD_SPn(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 16);
       },
@@ -447,7 +447,7 @@ export default class CPU {
       this.NOP,
       () => { this.PUSH_nn(this.registers.AF); this.updateCycles(1, 16); },
       () => {
-        this.OR_An(this.MMU.readByte(this.registers.PC()));
+        this.OR_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -1066,8 +1066,8 @@ export default class CPU {
     return true;
   }
   RETI() {
-    RET();
-    EI();
+    this.RET();
+    this.EI();
   }
   // Returns
 }
