@@ -773,7 +773,7 @@ export default class CPU {
     this.registers.HL(this.registers.HL() + this.signed(n()));
   }
   ADD_SPn(n) {
-    this.setFlag(false, false, this.isCarry(this.registers.SP(), this.signed(n())), this.is16BitsCarry(this.registers.SP(), this.signed(n())));
+    this.setFlag(this.registers.F.Z(), false, this.isCarry(this.registers.SP(), this.signed(n())), this.is16BitsCarry(this.registers.SP(), this.signed(n())));
     this.registers.SP(this.registers.SP() + this.signed(n()));
   }
   INC_nn(nn) {
