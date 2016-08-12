@@ -302,7 +302,7 @@ export default class CPU {
       },
       () => { this.PUSH_nn(this.registers.BC); this.updateCycles(1, 16); },
       () => {
-        this.ADD_An(this.MMU.readByte(this.registers.PC()));
+        this.ADD_An(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -356,7 +356,7 @@ export default class CPU {
       },
       () => { this.PUSH_nn(this.registers.DE); this.updateCycles(1, 16); },
       () => {
-        this.SUB_An(this.MMU.readByte(this.registers.PC()));
+        this.SUB_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -695,11 +695,11 @@ export default class CPU {
     this.MMU.writeWord(nn & 0xffff, this.registers.SP());
   }
   PUSH_nn(nn) {
-    this.MMU.writeWord(this.registers.SP() - 1, nn() & 0xffff);
+    this.MMU.writeWord(this.registers.SP() - 2, nn() & 0xffff);
     this.registers.SP(this.registers.SP() - 2);
   }
   POP_nn(nn) {
-    nn(this.MMU.readWord(this.registers.SP() + 1));
+    nn(this.MMU.readWord(this.registers.SP()));
     this.registers.SP(this.registers.SP() + 2);
   }
   // Helper methods for ALU
@@ -982,7 +982,7 @@ export default class CPU {
   }
   // Calls
   CALL_nn(nn) {
-    this.MMU.writeWord(this.registers.SP() - 1, this.registers.PC() + 2);
+    this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC() + 2);
     this.registers.SP(this.registers.SP() - 2);
 
     this.registers.PC(nn);
@@ -1025,14 +1025,14 @@ export default class CPU {
   }
   // Restarts
   RST_n(n) {
-    this.MMU.writeWord(this.registers.SP(), this.registers.PC());
+    this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC());
     this.registers.SP(this.registers.SP() - 2);
 
     this.registers.PC(n & 0xff);
   }
   RET() {
-    const lowByte = this.MMU.readByte(this.registers.SP() + 1);
-    const highByte = this.MMU.readByte(this.registers.SP() + 2);
+    const lowByte = this.MMU.readByte(this.registers.SP());
+    const highByte = this.MMU.readByte(this.registers.SP() + 1);
 
     this.registers.PC(highByte << 8 | lowByte & 0xff);
     this.registers.SP(this.registers.SP() + 2);
