@@ -727,21 +727,21 @@ export default class CPU {
   }
   // 8-bits ALU
   ADD_An(n) {
-    this.setFlag(this.registers.A() + n() === 0, false, this.isHalfCarry(this.registers.A(), n()), this.isCarry(this.registers.A(), n()));
+    this.setFlag(((this.registers.A() + n()) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n()), this.isCarry(this.registers.A(), n()));
     this.registers.A(this.registers.A() + n());
   }
   ADC_An(n) {
     const carryFlag = this.registers.F.Z() ? 1 : 0;
-    this.setFlag(this.registers.A() + n() + carryFlag === 0, false, this.isHalfCarry(this.registers.A(), n(), carryFlag), this.isCarry(this.registers.A(), n(), carryFlag));
+    this.setFlag(((this.registers.A() + n() + carryFlag) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n(), carryFlag), this.isCarry(this.registers.A(), n(), carryFlag));
     this.registers.A(this.registers.A() + n() + carryFlag);
   }
   SUB_n(n) {
-    this.setFlag(this.registers.A() - n() === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
+    this.setFlag(((this.registers.A() - n()) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
     this.registers.A(this.registers.A() - n());
   }
   SBC_n(n) {
     const carryFlag = this.registers.F.Z() ? 1 : 0;
-    this.setFlag(this.registers.A() - n() + carryFlag === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
+    this.setFlag(((this.registers.A() - n() + carryFlag) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
     this.registers.A(this.registers.A() - n() + carryFlag);
   }
   AND_n(n) {
