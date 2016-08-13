@@ -19,17 +19,25 @@ export default class Gameboy {
     const breakPoint = parseInt(document.getElementById('breakpoint').value, 16);
 
     if (!!breakPoint) {
-      do {
-        this.step();
-      } while (this.CPU.registers.PC() !== breakPoint);
+      return new Promise((resolve, reject) => {
+        this.stop = setInterval(() => {
+          this.step();
 
-      return true;
+          if (this.CPU.registers.PC() === breakPoint) {
+            clearInterval(this.stop);
+
+            resolve(true);
+          }
+        }, 1);
+      });
     } else {
-      this.stop = setInterval(() => {
-        this.frame();
-      }, 16);
+      return new Promise((resolve, reject) => {
+        this.stop = setInterval(() => {
+          this.frame();
+        }, 16);
 
-      return false;
+        resolve(false);
+      });
     }
   }
   pause() {

@@ -32,10 +32,13 @@ document.getElementById('fileInput').onchange = (event) => {
 
 document.getElementById('run').onclick = (event) => {
   setRun();
-  if (gameboy.run()) {
-    setPause();
-  }
-  gameboy.updateDebugger();
+  gameboy.run().then((isFinished) => {
+    if (isFinished) {
+      setPause();
+    }
+
+    gameboy.updateDebugger();
+  });
 };
 
 document.getElementById('pause').onclick = (event) => {
