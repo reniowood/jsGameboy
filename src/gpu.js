@@ -29,10 +29,6 @@ export default class GPU {
     for (let i=0; i<8192; i+=1) {
       this.videoRAM.push(0);
     }
-    this.OAM = [];
-    for (let i=0; i<256; i+=1) {
-      this.OAM.push(0);
-    }
 
     this.tiles = [];
     for (let i=0; i<384; i+=1) {
@@ -48,13 +44,45 @@ export default class GPU {
       [0, 0, 0, 255],
       [0, 0, 0, 255]
     ];
+    this.objectPalette = [
+      [
+        [255, 255, 255, 255],
+        [0, 0, 0, 255],
+        [0, 0, 0, 255],
+        [0, 0, 0, 255]
+      ],
+      [
+        [255, 255, 255, 255],
+        [0, 0, 0, 255],
+        [0, 0, 0, 255],
+        [0, 0, 0, 255]
+      ]
+    ];
+
+    // Sprites
+    this.OAM = [];
+    for (let i=0; i<160; i+=1) {
+      this.OAM.push(0);
+    }
+    this.sprites = [];
+    for (let i=0; i<40; i+=1) {
+      this.sprites.push({
+        y: 0,
+        x: 0,
+        tile: 0,
+        palette: 0,
+        xFlip: false,
+        yFlip: false,
+        aboveBackground: 0,
+      });
+    }
 
     // LCDC
     this.screenX = 0;
     this.screenY = 0;
     this.isBackgroundOn = true;
     this.isSpritesOn = false;
-    this.spriteSize = 8*8;
+    this.spriteHeight = 8;
     this.bgTileMap = 0;
     this.bgTileSet = 0;
     this.isWindowOn = false;
@@ -113,6 +141,28 @@ export default class GPU {
         break;
     }
   }
+  updateSprite(addr, value) {
+    const sprite = Math.floor((addr - 0xfe00) / 4);
+    const index = (addr - 0xfe00) % 4;
+
+    switch (index) {
+      case 0:
+        this.sprites[sprite].y = value + 16;
+        break;
+      case 1:
+        this.sprites[sprite].x = value + 8;
+        break;
+      case 2:
+        this.sprites[sprite].tile = value;
+        break;
+      case 3:
+        this.sprites[sprite].palette = value & 0x10 ? 1 : 0;
+        this.sprites[sprite].xFlip = value & 0x20 ? true : false;
+        this.sprites[sprite].yFlip = value & 0x40 ? true : false;
+        this.sprites[sprite].aboveBackground = value & 0x80 ? false : true;
+        break;
+    }
+  }
   updateTile(addr, value) {
     const baseAddr = addr & 0x1ffe; // two bytes needed to represent a 1x8 line
     const tileIndex = (baseAddr >> 4) & 0x1ff;
@@ -122,29 +172,165 @@ export default class GPU {
       this.tiles[tileIndex][y][7 - x] = ((this.videoRAM[baseAddr] >> x) & 0x01) | (((this.videoRAM[baseAddr + 1] >> x) & 0x01) << 1);
     }
   }
-  render() {
+  updatePalette(palette, value) {
+    for (let i=0; i<4; i+=1) {
+      switch ((value >> i*2) & 0x03) {
+        case 0:
+          palette[i] = [255, 255, 255, 255];
+
+          break;
+        case 1:
+          palette[i] = [192, 192, 192, 255];
+
+          break;
+        case 2:
+          palette[i] = [96, 96, 96, 255];
+
+          break;
+        case 3:
+          palette[i] = [0, 0, 0, 255];
+
+          break;
+      }
+    }
+
+    return value;
+  }
+  renderBackground() {
+    let renderedBackgroundRow = new Array(160).fill({
+      color: 0,
+      palette: this.palette,
+    });
+
     const tileMapBase = this.bgTileMap === 0 ? 0x1800 : 0x1c00;
     const tileMapX = this.screenX >> 3;
     const tileMapY = (this.screenY + this.line) >> 3;
     const xInTile = this.screenX & 0x07;
     const yInTile = (this.screenY + this.line) & 0x07;
 
-    const canvasOffset = this.line * 160 * 4;
     let tileOffset = tileMapBase + tileMapY * 32 + tileMapX;
     let x = xInTile;
-    for (let pxNum = 0; pxNum < 160; pxNum += 1) {
+    for (let i = 0; i < 160; i += 1) {
       const tile = this.videoRAM[tileOffset];
-      const color = this.palette[this.tiles[tile][yInTile][x]];
-
-      this.screen.data[canvasOffset + pxNum * 4] = color[0];
-      this.screen.data[canvasOffset + pxNum * 4 + 1] = color[1];
-      this.screen.data[canvasOffset + pxNum * 4 + 2] = color[2];
-      this.screen.data[canvasOffset + pxNum * 4 + 3] = color[3];
+      renderedBackgroundRow[i] = {
+        color: this.tiles[tile][yInTile][x],
+        palette: this.palette,
+      };
 
       x = (x + 1) % 8;
       if (x === 0) {
         tileOffset += 1;
       }
+    }
+
+    return renderedBackgroundRow;
+  }
+  renderSprites(renderedBackgroundRow) {
+    let renderedSpritesRow = new Array(160).fill({
+      color: -1,
+      palette: this.palette,
+    });
+
+    const filteredSprites = this.sprites.filter((sprite) => {
+      return this.line >= sprite.y && this.line < sprite.y + this.spriteHeight;
+    });
+    const orderedSprites = filteredSprites.sort((a, b) => {
+      if (a.x > b.x) {
+        return -1;
+      } else if (a.x < b.x) {
+        return 1;
+      } else {
+        const indexA = this.sprites.indexOf(a);
+        const indexB = this.sprites.indexOf(b);
+
+        if (indexA > indexB) {
+          return -1;
+        } else if (indexA < indexB) {
+          return 1;
+        } else {
+          return 0;
+        }
+      }
+
+      return 0;
+    });
+    const sprites = orderedSprites.slice(Math.max(orderedSprites.length - 10, 0));
+
+    for (let sprite of orderedSprites) {
+      let tile, height;
+      if (this.spriteHeight === 16) {
+        if (this.line - sprite.y >= 8) {
+          tile = sprite.tile - (sprite.tiles % 2) + 1;
+          height = 16;
+        } else {
+          tile = sprite.tile - (sprite.tiles % 2);
+          height = 8;
+        }
+      } else {
+        tile = sprite.tile;
+        height = 8;
+      }
+
+      let row;
+      if (sprite.yFlip) {
+        row = this.tiles[tile][height - (this.line - sprite.y) - 1];
+      } else {
+        row = this.tiles[tile][this.line - sprite.y + 8 - height];
+      }
+
+      for (let x=0; x<8; x+=1) {
+        let pixel;
+        if (sprite.xFlip) {
+          pixel = row[8 - x - 1];
+        } else {
+          pixel = row[x];
+        }
+
+        if (sprite.aboveBackground || (renderedBackgroundRow[sprite.x + x].color === 0)) {
+          renderedSpritesRow[sprite.x + x] = {
+            color: pixel,
+            palette: this.objectPalette[sprite.palette],
+          };
+        }
+      }
+    }
+
+    return renderedSpritesRow;
+  }
+  renderRow(renderedRow) {
+    const canvasOffset = this.line * 160 * 4;
+    for (let i=0; i<160; i+=1) {
+      if (renderedRow[i].color !== -1) {
+        const color = renderedRow[i].palette[renderedRow[i].color];
+
+        this.screen.data[canvasOffset + i * 4] = color[0];
+        this.screen.data[canvasOffset + i * 4 + 1] = color[1];
+        this.screen.data[canvasOffset + i * 4 + 2] = color[2];
+        this.screen.data[canvasOffset + i * 4 + 3] = color[3];
+      }
+    }
+  }
+  render() {
+    let renderedBackgroundRow = new Array(160).fill({
+      color: 0,
+      palette: this.palette,
+    });
+
+    if (this.isBackgroundOn) {
+      renderedBackgroundRow = this.renderBackground();
+
+      this.renderRow(renderedBackgroundRow);
+    }
+
+    let renderedSpritesRow = new Array(160).fill({
+      color: -1,
+      palette: this.palette,
+    });
+
+    if (this.isSpritesOn) {
+      renderedSpritesRow = this.renderSprites(renderedBackgroundRow);
+
+      this.renderRow(renderedSpritesRow);
     }
   }
   readByte(addr) {
@@ -152,7 +338,7 @@ export default class GPU {
       case 0x40: // LCD and GPU control
         return (this.isBackgroundOn ? 0x01 : 0x00) |
                (this.isSpritesOn ? 0x02 : 0x00) |
-               (this.spriteSize === 8*16 ? 0x04 : 0x00) |
+               (this.spriteHeight === 16 ? 0x04 : 0x00) |
                (this.bgTileMap === 1 ? 0x08 : 0x00) |
                (this.bgTileSet === 1 ? 0x10 : 0x00) |
                (this.isWindowOn ? 0x20 : 0x00) |
@@ -177,7 +363,7 @@ export default class GPU {
       case 0x40: // LCD and GPU control
         this.isBackgroundOn = (value & 0x01) ? true : false;
         this.isSpritesOn = (value & 0x02) ? true : false;
-        this.spriteSize = (value & 0x04) ? 8*16 : 8*8;
+        this.spriteHeight = (value & 0x04) ? 16 : 8;
         this.bgTileMap = (value & 0x08) ? 1 : 0;
         this.bgTileSet = (value & 0x10) ? 1 : 0;
         this.isWindowOn = (value & 0x20) ? true : false;
@@ -213,28 +399,11 @@ export default class GPU {
       case 0x43: // Scroll-X
         return this.screenX = value;
       case 0x47: // Background Palette
-        for (let i=0; i<4; i+=1) {
-          switch ((value >> i*2) & 0x03) {
-            case 0:
-              this.palette[i] = [255, 255, 255, 255];
-
-              break;
-            case 1:
-              this.palette[i] = [192, 192, 192, 255];
-
-              break;
-            case 2:
-              this.palette[i] = [96, 96, 96, 255];
-
-              break;
-            case 3:
-              this.palette[i] = [0, 0, 0, 255];
-
-              break;
-          }
-        }
-
-        return value;
+        return this.updatePalette(this.palette, value);
+      case 0x48: // Object Palette 0
+        return this.updatePalette(this.objectPalette[0], value);
+      case 0x49: // Object Palette 1
+        return this.updatePalette(this.objectPalette[1], value);
     }
   }
 }

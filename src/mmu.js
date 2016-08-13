@@ -35,7 +35,7 @@ export default class MMU {
     for (let i=0; i<8192; i+=1) {
       this.workingRAM.push(0);
     }
-    // Sprite Attribute Memory (OAM): 0xfe00 - 0xfe9f
+    // Sprite Attribute Memory (OAM): 0xfe00 - 0xfea0
     // Memory-mapped I/O: 0xff00 - 0xff7f
     this.zeroPageRAM = []; // 0xff80 - 0xffff
     for (let i=0; i<128; i+=1) {
@@ -167,7 +167,10 @@ export default class MMU {
             return this.workingRAM[addr & 0x1fff] = value;
           case 0x0e00:
             if (addr < 0xfea0) {
-              return this.GPU.OAM[addr & 0xff] = value;
+              this.GPU.OAM[addr & 0xff] = value;
+              this.GPU.updateSprite(addr, value);
+
+              return this.GPU.OAM[addr & 0xff];
             }
 
             return 0;
