@@ -1,4 +1,5 @@
 import Clock from './clock';
+import Input from './input';
 import GPU from './gpu';
 import MMU from './mmu';
 import CPU from './cpu';
@@ -6,8 +7,9 @@ import CPU from './cpu';
 export default class Gameboy {
   constructor() {
     this.clock = new Clock();
+    this.Input = new Input();
     this.GPU = new GPU(this.clock);
-    this.MMU = new MMU(this.GPU);
+    this.MMU = new MMU(this.GPU, this.Input);
     this.CPU = new CPU(this.clock, this.MMU);
 
     this.stop = undefined;
@@ -121,5 +123,11 @@ export default class Gameboy {
 
       videoRAMElement.appendChild(ramLineElement);
     }
+  }
+  keydown(key) {
+    this.Input.keydown(key);
+  }
+  keyup(key) {
+    this.Input.keyup(key);
   }
 }

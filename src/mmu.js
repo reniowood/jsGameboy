@@ -1,6 +1,7 @@
 export default class MMU {
-  constructor(GPU) {
+  constructor(GPU, Input) {
     this.GPU = GPU;
+    this.Input = Input;
 
     this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
     this.reset();
@@ -103,6 +104,8 @@ export default class MMU {
             }
 
             switch (addr & 0x00f0) {
+              case 0x00:
+                return this.Input.readByte();
               case 0x40:
               case 0x50:
               case 0x60:
