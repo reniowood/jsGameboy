@@ -260,10 +260,10 @@ export default class GPU {
       let tile, height;
       if (this.spriteHeight === 16) {
         if (this.line - sprite.y >= 8) {
-          tile = sprite.tile - (sprite.tiles % 2) + 1;
+          tile = sprite.tile - (sprite.tile % 2) + 1;
           height = 16;
         } else {
-          tile = sprite.tile - (sprite.tiles % 2);
+          tile = sprite.tile - (sprite.tile % 2);
           height = 8;
         }
       } else {
