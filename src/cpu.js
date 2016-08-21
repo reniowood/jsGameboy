@@ -638,15 +638,46 @@ export default class CPU {
         this.registers.F(value & 0xff);
       },
     };
+
+    this.IME = false;
   }
   step() {
     const opcode = this.MMU.readByte(this.registers.PC());
     this.registers.PC(this.registers.PC() + 1);
     this.instMap[opcode]();
     this.registers.PC(this.registers.PC() & 0xffff);
+
+    if (this.IME) {
+      if (this.MMU.interruptEnabled.VBlank && this.MMU.interruptFlag.VBlank) {
+        this.IME = false;
+        this.MMU.interruptFlag.VBlank = false;
+        this.RST_n(0x40);
+        this.updateCycles(3, 12);
+      } else if (this.MMU.interruptEnabled.LCDStatus && this.MMU.interruptFlag.LCDStatus) {
+        this.IME = false;
+        this.MMU.interruptFlag.LCDStatus = false;
+        this.RST_n(0x48);
+        this.updateCycles(3, 12);
+      } else if (this.MMU.interruptEnabled.timer && this.MMU.interruptFlag.timer) {
+        this.IME = false;
+        this.MMU.interruptFlag.timer = false;
+        this.RST_n(0x50);
+        this.updateCycles(3, 12);
+      } else if (this.MMU.interruptEnabled.serial && this.MMU.interruptFlag.serial) {
+        this.IME = false;
+        this.MMU.interruptFlag.serial = false;
+        this.RST_n(0x58);
+        this.updateCycles(3, 12);
+      } else if (this.MMU.interruptEnabled.input && this.MMU.interruptFlag.input) {
+        this.IME = false;
+        this.MMU.interruptFlag.input = false;
+        this.RST_n(0x60);
+        this.updateCycles(3, 12);
+      }
+    }
   }
   updateCycles(m, c) {
-    this.clock.cycles += c;
+    this.clock.cycles = c;
   }
   signed(n) {
     if (n & 0x80) {
@@ -827,10 +858,10 @@ export default class CPU {
     // TODO
   }
   DI() {
-    // TODO
+    this.IME = false;
   }
   EI() {
-    // TODO
+    this.IME = true;
   }
   // Rotates & Shifts
   RLCA() {

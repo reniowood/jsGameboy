@@ -20,7 +20,7 @@ export default class Gameboy {
   run() {
     const breakPoint = parseInt(document.getElementById('breakpoint').value, 16);
 
-    if (!!breakPoint) {
+    if (!isNaN(breakPoint)) {
       return new Promise((resolve, reject) => {
         this.stop = setInterval(() => {
           this.step();
@@ -36,7 +36,7 @@ export default class Gameboy {
       return new Promise((resolve, reject) => {
         this.stop = setInterval(() => {
           this.frame();
-        }, 16);
+        }, 1000/60);
 
         resolve(false);
       });
@@ -48,6 +48,8 @@ export default class Gameboy {
     }
   }
   reset() {
+    this.clock.reset();
+
     this.CPU.reset();
     this.CPU.registers.A(0x01);
     this.CPU.registers.F(0xb0);
@@ -55,7 +57,7 @@ export default class Gameboy {
     this.CPU.registers.DE(0x00d8);
     this.CPU.registers.HL(0x014d);
     this.CPU.registers.SP(0xfffe);
-    this.CPU.registers.PC(0x100);
+    this.CPU.registers.PC(0x101);
 
     this.MMU.reset();
     this.MMU.isInBIOS = false; 
@@ -71,22 +73,26 @@ export default class Gameboy {
     }
   }
   frame() {
-    const until = this.clock.cycles + 70224;
+    let until = 70224;
 
     do {
       this.step();
-    } while (this.clock.cycles < until);
+      until -= this.clock.cycles;
+    } while (until >= 0);
   }
   updateDebugger() {
+    this.updateCycles();
     this.updateRegisters();
     this.updateMemory();
   }
   toHex(num) {
     return '0x' + num.toString(16);
   }
-
   toBin(num) {
     return num.toString(2);
+  }
+  updateCycles() {
+    document.getElementById('cycles').value = this.clock.cycles;
   }
   updateRegisters() {
     document.getElementById('regiA').value = this.toHex(this.CPU.registers.A());

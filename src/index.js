@@ -72,37 +72,80 @@ document.getElementById('step').onclick = (event) => {
   gameboy.updateDebugger();
 };
 
+document.getElementById('10').onclick = (event) => {
+  for (let i=0; i<10; i+=1) {
+    gameboy.step();
+  }
+  gameboy.updateDebugger();
+};
+
+document.getElementById('100').onclick = (event) => {
+  for (let i=0; i<100; i+=1) {
+    gameboy.step();
+  }
+  gameboy.updateDebugger();
+};
+
+document.getElementById('1000').onclick = (event) => {
+  for (let i=0; i<1000; i+=1) {
+    gameboy.step();
+  }
+  gameboy.updateDebugger();
+};
+
+document.getElementById('10000').onclick = (event) => {
+  for (let i=0; i<10000; i+=1) {
+    gameboy.step();
+  }
+  gameboy.updateDebugger();
+};
+
 document.getElementById('frame').onclick = (event) => {
   gameboy.frame();
   gameboy.updateDebugger();
+};
+
+document.getElementById('runInstCount').onclick = (event) => {
+  const instCount = parseInt(document.getElementById('instCount').value, 10);
+
+  if (!isNaN(instCount)) {
+    for (let i=0; i<instCount; i+=1) {
+      gameboy.step();
+    }
+    gameboy.updateDebugger();
+  }
+};
+
+document.getElementById('showMemory').onclick = (event) => {
+  document.getElementById('memoryValue').value = gameboy.MMU.readByte(parseInt(document.getElementById('memoryAddr').value, 16)).toString(16);
 };
 
 document.body.onkeydown = (event) => {
   switch (event.keyCode) {
     case keyCode.B:
       gameboy.keydown('B');
-      return false;
+      break;
     case keyCode.A:
       gameboy.keydown('A');
-      return false;
+      break;
     case keyCode.START:
       gameboy.keydown('START');
-      return false;
+      break;
     case keyCode.SELECT:
       gameboy.keydown('SELECT');
-      return false;
+      break;
     case keyCode.UP:
       gameboy.keydown('UP');
-      return false;
+      break;
     case keyCode.DOWN:
       gameboy.keydown('DOWN');
-      return false;
+      break;
     case keyCode.LEFT:
       gameboy.keydown('LEFT');
-      return false;
+      break;
     case keyCode.RIGHT:
       gameboy.keydown('RIGHT');
-      return false;
+      break;
   }
 };
 
@@ -110,27 +153,27 @@ document.body.onkeyup = (event) => {
   switch (event.keyCode) {
     case keyCode.B:
       gameboy.keyup('B');
-      return false;
+      break;
     case keyCode.A:
       gameboy.keyup('A');
-      return false;
+      break;
     case keyCode.START:
       gameboy.keyup('START');
-      return false;
+      break;
     case keyCode.SELECT:
       gameboy.keyup('SELECT');
-      return false;
+      break;
     case keyCode.UP:
       gameboy.keyup('UP');
-      return false;
+      break;
     case keyCode.DOWN:
       gameboy.keyup('DOWN');
-      return false;
+      break;
     case keyCode.LEFT:
       gameboy.keyup('LEFT');
-      return false;
+      break;
     case keyCode.RIGHT:
       gameboy.keyup('RIGHT');
-      return false;
+      break;
   }
 };

@@ -22,7 +22,7 @@ export default class GPU {
       SCANLINE_OAM: 2,
       SCANLINE_VRAM: 3,
     };
-    this.mode = this.MODE.SCANLINE_OAM; 
+    this.mode = this.MODE.HBLANK; 
     this.line = 0;
 
     this.videoRAM = [];
@@ -93,9 +93,17 @@ export default class GPU {
     this.STAT = 0xff41;
 
     this.registers = [];
+    for (let i=0; i<12; i+=1) {
+      this.registers.push(0);
+    }
+    this.registers[0xff47 - 0xff40] = 0xfc; // bgp
+    this.registers[0xff48 - 0xff40] = 0xff; // obp0
+    this.registers[0xff49 - 0xff40] = 0xff; // obp1
+    this.registers[0xff4a - 0xff40] = 0x00; // wx
+    this.registers[0xff4b - 0xff40] = 0x00; // wy
   }
   step() {
-    this.cycles = this.clock.cycles;
+    this.cycles += this.clock.cycles;
 
     switch (this.mode) {
       case this.MODE.SCANLINE_OAM:
@@ -115,16 +123,16 @@ export default class GPU {
 
         break;
       case this.MODE.HBLANK:
-        if (this.cycles >= 202) {
+        if (this.cycles >= 204) {
+          this.cycles = 0;
+          this.line += 1;
+
           if (this.line === 143) {
             this.writeByte(this.STAT, 0x01);
             this.canvas.putImageData(this.screen, 0, 0);
           } else {
             this.writeByte(this.STAT, 0x02);
-            this.line += 1;
           }
-
-          this.cycles = 0;
         }
 
         break;
@@ -133,7 +141,7 @@ export default class GPU {
           this.cycles = 0;
           this.line += 1;
 
-          if (this.line === 153) {
+          if (this.line === 154) {
             this.writeByte(this.STAT, 0x02);
             this.line = 0;
           }
@@ -399,10 +407,13 @@ export default class GPU {
       case 0x43: // Scroll-X
         return this.screenX = value;
       case 0x47: // Background Palette
+        this.registers[addr - 0xff40] = value;
         return this.updatePalette(this.palette, value);
       case 0x48: // Object Palette 0
+        this.registers[addr - 0xff40] = value;
         return this.updatePalette(this.objectPalette[0], value);
       case 0x49: // Object Palette 1
+        this.registers[addr - 0xff40] = value;
         return this.updatePalette(this.objectPalette[1], value);
     }
   }
