@@ -73,6 +73,7 @@ export default class CPU {
       () => { this.RRA(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('NZ', this.MMU.readByte(this.registers.PC()));
+        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, isActionTaken ? 12 : 8);
       },
       () => {
@@ -96,6 +97,7 @@ export default class CPU {
       () => { this.DAA(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('Z', this.MMU.readByte(this.registers.PC()));
+        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => { this.ADD_HLn(this.registers.HL); this.updateCycles(1, 8); },
@@ -115,6 +117,7 @@ export default class CPU {
       () => { this.CPL(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('NC', this.MMU.readByte(this.registers.PC()));
+        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => {
@@ -138,6 +141,7 @@ export default class CPU {
       () => { this.SCF(); this.updateCycles(1, 4); },
       () => {
         const isActionTaken = this.JR_cc_n('C', this.MMU.readByte(this.registers.PC()));
+        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(1, isActionTaken ? 12 : 8);
       },
       () => { this.ADD_HLn(this.registers.SP); this.updateCycles(1, 8); },
@@ -979,29 +983,21 @@ export default class CPU {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
-          this.registers.PC(this.registers.PC() + 1);
-
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
-          this.registers.PC(this.registers.PC() + 1);
-
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
-          this.registers.PC(this.registers.PC() + 1);
-
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
-          this.registers.PC(this.registers.PC() + 1);
-
           return false;
         }
         break;
