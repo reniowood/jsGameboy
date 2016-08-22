@@ -764,6 +764,9 @@ export default class CPU {
   isCarry(...registers) {
     return registers.reduce((sum, register) => (sum += register), 0) > 0xff;
   }
+  is16BitsHalfCarry(...registers) {
+    return registers.reduce((sum, register) => (sum += register & 0xfff), 0) > 0xfff;
+  }
   is16BitsCarry(...registers) {
     return registers.reduce((sum, register) => (sum += register), 0) > 0xffff;
   }
@@ -817,12 +820,12 @@ export default class CPU {
   }
   // 16-bits ALU
   ADD_HLn(n) {
-    this.setFlag(this.registers.F.Z(), false, this.isCarry(this.registers.HL(), this.signed(n())), this.is16BitsCarry(this.registers.HL(), this.signed(n())));
-    this.registers.HL(this.registers.HL() + this.signed(n()));
+    this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.HL(), n()), this.is16BitsCarry(this.registers.HL(), n()));
+    this.registers.HL(this.registers.HL() + n());
   }
   ADD_SPn(n) {
-    this.setFlag(this.registers.F.Z(), false, this.isCarry(this.registers.SP(), this.signed(n())), this.is16BitsCarry(this.registers.SP(), this.signed(n())));
-    this.registers.SP(this.registers.SP() + this.signed(n()));
+    this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.SP(), n()), this.is16BitsCarry(this.registers.SP(), n()));
+    this.registers.SP(this.registers.SP() + n());
   }
   INC_nn(nn) {
     nn(nn() + 1);
