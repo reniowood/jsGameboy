@@ -196,18 +196,24 @@ export default class MMU {
               return this.zeroPageRAM[addr & 0x7f] = value;
             }
 
-            switch (addr & 0x00f0) {
-              case 0x00:
-                if (addr === 0xff0f) {
-                  return this.interrupt.setIF(value);
-                }
+            if (addr === 0xff0f) { // IF
+              return this.interrupt.setIF(value);
+            } else if (addr === 0xff46) { // DMA
+              const base = 0xfe00;
+              for (let i=0; i<0xa0; i+=1) {
+                const val = this.readByte((value << 8) + i);
 
-                break;
-              case 0x40:
-              case 0x50:
-              case 0x60:
-              case 0x70:
-                return this.GPU.writeByte(addr, value);
+                this.GPU.OAM[i] = val;
+                this.GPU.updateSprite(base + i, val);
+              }
+            } else {
+              switch (addr & 0x00f0) {
+                case 0x40:
+                case 0x50:
+                case 0x60:
+                case 0x70:
+                  return this.GPU.writeByte(addr, value);
+              }
             }
 
             return 0;
