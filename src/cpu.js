@@ -302,7 +302,7 @@ export default class CPU {
         this.updateCycles(3, 12);
       },
       () => {
-        this.CALL_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
+        const isActionTaken = this.CALL_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
         this.updateCycles(3, isActionTaken ? 24 : 12);
       },
       () => { this.PUSH_nn(this.registers.BC); this.updateCycles(1, 16); },
