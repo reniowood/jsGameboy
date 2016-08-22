@@ -1,6 +1,7 @@
 export default class GPU {
-  constructor(clock) {
+  constructor(clock, interrupt) {
     this.clock = clock;
+    this.interrupt = interrupt;
 
     this.reset();
   }
@@ -16,14 +17,8 @@ export default class GPU {
 
     this.canvas.putImageData(this.screen, 0, 0);
 
-    this.MODE = {
-      HBLANK: 0,
-      VBLANK: 1,
-      SCANLINE_OAM: 2,
-      SCANLINE_VRAM: 3,
-    };
-    this.mode = this.MODE.HBLANK; 
     this.line = 0;
+    this.lineCompare = 0;
 
     this.videoRAM = [];
     for (let i=0; i<8192; i+=1) {
@@ -67,8 +62,8 @@ export default class GPU {
     this.sprites = [];
     for (let i=0; i<40; i+=1) {
       this.sprites.push({
-        y: 0,
-        x: 0,
+        y: -16,
+        x: -8,
         tile: 0,
         palette: 0,
         xFlip: false,
@@ -90,12 +85,24 @@ export default class GPU {
     this.isDisplayOn = true;
 
     // STAT
-    this.STAT = 0xff41;
+    this.MODE = {
+      HBLANK: 0,
+      VBLANK: 1,
+      SCANLINE_OAM: 2,
+      SCANLINE_VRAM: 3,
+    };
+    this.mode = this.MODE.HBLANK; 
+    this.coincidenceFlag = false;
+    this.HBlankInterrupt = false;
+    this.VBlankInterrupt = false;
+    this.OAMInterrupt = false;
+    this.lineCompareInterrupt = false;
 
     this.registers = [];
     for (let i=0; i<12; i+=1) {
       this.registers.push(0);
     }
+    this.registers[0xff47 - 0xff40] = 0xfc; // bgp
     this.registers[0xff47 - 0xff40] = 0xfc; // bgp
     this.registers[0xff48 - 0xff40] = 0xff; // obp0
     this.registers[0xff49 - 0xff40] = 0xff; // obp1
@@ -106,59 +113,85 @@ export default class GPU {
     this.cycles += this.clock.cycles;
 
     switch (this.mode) {
+      case this.MODE.HBLANK:
+        if (this.cycles >= 204) {
+          if (this.HBlankInterrupt) {
+            this.interrupt.interruptFlag.LCDStatus = true;
+          }
+
+          if (this.line === 144) {
+            if (this.VBlankInterrupt) {
+              this.interrupt.interruptFlag.LCDStatus = true;
+            }
+            this.interrupt.interruptFlag.VBlank = true;
+
+            this.canvas.putImageData(this.screen, 0, 0);
+
+            this.writeByte(0xff41, 0x01);
+          } else {
+            this.writeByte(0xff41, 0x02);
+          }
+
+          this.cycles = 0;
+        }
+
+        break;
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
-          this.writeByte(this.STAT, 0x03);
+          this.writeByte(0xff41, 0x03);
+
+          if (this.OAMInterrupt) {
+            this.interrupt.interruptFlag.LCDStatus = true;
+          }
+
           this.cycles = 0;
         }
 
         break;
       case this.MODE.SCANLINE_VRAM:
         if (this.cycles >= 172) {
-          this.writeByte(this.STAT, 0x00);
-          this.cycles = 0;
+          this.writeByte(0xff41, 0x00);
+
+          this.coincidenceFlag = this.line === this.lineCompare;
+          if (this.lineCompareInterrupt) {
+            this.interrupt.interruptFlag.LCDStatus = true;
+          }
 
           this.render();
-        }
 
-        break;
-      case this.MODE.HBLANK:
-        if (this.cycles >= 204) {
-          this.cycles = 0;
           this.line += 1;
-
-          if (this.line === 143) {
-            this.writeByte(this.STAT, 0x01);
-            this.canvas.putImageData(this.screen, 0, 0);
-          } else {
-            this.writeByte(this.STAT, 0x02);
-          }
+          this.cycles = 0;
         }
 
         break;
       case this.MODE.VBLANK:
         if (this.cycles >= 456) {
-          this.cycles = 0;
           this.line += 1;
 
           if (this.line === 154) {
-            this.writeByte(this.STAT, 0x02);
+            this.writeByte(0xff41, 0x00);
+
             this.line = 0;
           }
+
+          this.cycles = 0;
         }
+
         break;
     }
   }
   updateSprite(addr, value) {
-    const sprite = Math.floor((addr - 0xfe00) / 4);
-    const index = (addr - 0xfe00) % 4;
+    const sprite = (addr - 0xfe00) >> 2;
+    const index = (addr - 0xfe00) & 0x03;
 
     switch (index) {
       case 0:
-        this.sprites[sprite].y = value + 16;
+        this.sprites[sprite].y = value - 16;
+        console.log(sprite, 'y', value - 16);
         break;
       case 1:
-        this.sprites[sprite].x = value + 8;
+        this.sprites[sprite].x = value - 8;
+        console.log(sprite, 'x', value - 8);
         break;
       case 2:
         this.sprites[sprite].tile = value;
@@ -262,9 +295,10 @@ export default class GPU {
 
       return 0;
     });
-    const sprites = orderedSprites.slice(Math.max(orderedSprites.length - 10, 0));
+    const sprites = orderedSprites.slice(Math.min(orderedSprites.length, 10));
 
     for (let sprite of orderedSprites) {
+      console.log(sprite);
       let tile, height;
       if (this.spriteHeight === 16) {
         if (this.line - sprite.y >= 8) {
@@ -353,13 +387,20 @@ export default class GPU {
                (this.windowTileMap === 1 ? 0x40 : 0x00) |
                (this.isDisplayOn ? 0x80 : 0x00);
       case 0x41: // STAT
-        return this.mode;
+        return this.mode |
+               (this.coincidenceFlag ? 0x04 : 0x00) |
+               (this.HBlankInterrupt ? 0x08 : 0x00) |
+               (this.VBlankInterrupt ? 0x10 : 0x00) |
+               (this.OAMInterrupt ? 0x20 : 0x00) |
+               (this.lineCompareInterrupt ? 0x40 : 0x00);
       case 0x42: // Scroll-Y
         return this.screenY;
       case 0x43: // Scroll-X
         return this.screenX;
       case 0x44: // Current scan line
         return this.line;
+      case 0x45: // LYC
+        return this.lineCompare;
       default:
         return this.registers[addr - 0xff40];
     }
@@ -380,24 +421,12 @@ export default class GPU {
 
         return value;
       case 0x41: // STAT
-        switch (value & 0x03) {
-          case 0x00: // HBLANK
-            this.mode = this.MODE.HBLANK;
-
-            break;
-          case 0x01: // VBLANK
-            this.mode = this.MODE.VBLANK;
-
-            break;
-          case 0x02: // SCANLINE_OAM
-            this.mode = this.MODE.SCANLINE_OAM;
-
-            break;
-          case 0x03: // SCANLINE_VRAM
-            this.mode = this.MODE.SCANLINE_VRAM;
-
-            break;
-        }
+        this.mode = value & 0x03;
+        this.coincidenceFlag = (value & 0x04) ? true : false;
+        this.HBlankInterrupt = (value & 0x08) ? true : false;
+        this.VBlankInterrupt = (value & 0x10) ? true : false;
+        this.OAMInterrupt = (value & 0x20) ? true : false;
+        this.lineCompareInterrupt = (value & 0x40) ? true : false;
 
         this.cycles = 0;
 
@@ -406,6 +435,8 @@ export default class GPU {
         return this.screenY = value;
       case 0x43: // Scroll-X
         return this.screenX = value;
+      case 0x45:
+        return this.lineCompare = value;
       case 0x47: // Background Palette
         this.registers[addr - 0xff40] = value;
         return this.updatePalette(this.palette, value);

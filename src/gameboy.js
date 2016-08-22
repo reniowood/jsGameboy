@@ -1,5 +1,6 @@
 import Clock from './clock';
 import Input from './input';
+import Interrupt from './interrupt';
 import GPU from './gpu';
 import MMU from './mmu';
 import CPU from './cpu';
@@ -7,10 +8,11 @@ import CPU from './cpu';
 export default class Gameboy {
   constructor() {
     this.clock = new Clock();
-    this.Input = new Input();
-    this.GPU = new GPU(this.clock);
-    this.MMU = new MMU(this.GPU, this.Input);
-    this.CPU = new CPU(this.clock, this.MMU);
+    this.input = new Input();
+    this.interrupt = new Interrupt();
+    this.GPU = new GPU(this.clock, this.interrupt);
+    this.MMU = new MMU(this.GPU, this.input, this.interrupt);
+    this.CPU = new CPU(this.clock, this.interrupt, this.MMU);
 
     this.stop = undefined;
   }
@@ -23,11 +25,7 @@ export default class Gameboy {
     if (!isNaN(breakPoint)) {
       return new Promise((resolve, reject) => {
         this.stop = setInterval(() => {
-          this.step();
-
-          if (this.CPU.registers.PC() === breakPoint) {
-            clearInterval(this.stop);
-
+          if (this.frame(breakPoint)) {
             resolve(true);
           }
         }, 1);
@@ -36,7 +34,7 @@ export default class Gameboy {
       return new Promise((resolve, reject) => {
         this.stop = setInterval(() => {
           this.frame();
-        }, 1000/60);
+        }, 1);
 
         resolve(false);
       });
@@ -49,6 +47,7 @@ export default class Gameboy {
   }
   reset() {
     this.clock.reset();
+    this.interrupt.reset();
 
     this.CPU.reset();
     this.CPU.registers.A(0x01);
@@ -72,18 +71,28 @@ export default class Gameboy {
       this.MMU.isInBIOS = false;
     }
   }
-  frame() {
+  frame(breakPoint) {
     let until = 70224;
 
     do {
       this.step();
+      if (this.CPU.registers.PC() === breakPoint) {
+        clearInterval(this.stop);
+
+        return true;
+      }
+
       until -= this.clock.cycles;
     } while (until >= 0);
+
+    return false;
   }
   updateDebugger() {
     this.updateCycles();
     this.updateRegisters();
     this.updateMemory();
+
+    document.getElementById('IME').value = this.CPU.IME;
   }
   toHex(num) {
     return '0x' + num.toString(16);
@@ -131,9 +140,9 @@ export default class Gameboy {
     }
   }
   keydown(key) {
-    this.Input.keydown(key);
+    this.input.keydown(key);
   }
   keyup(key) {
-    this.Input.keyup(key);
+    this.input.keyup(key);
   }
 }

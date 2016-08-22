@@ -1,6 +1,7 @@
 export default class CPU {
-  constructor(clock, MMU) {
+  constructor(clock, interrupt, MMU) {
     this.clock = clock;
+    this.interrupt = interrupt;
     this.MMU = MMU;
 
     this.reset();
@@ -310,7 +311,7 @@ export default class CPU {
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
-      () => { RST_n(0x00); this.updateCycles(1, 16); },
+      () => { this.RST_n(0x00); this.updateCycles(1, 16); },
       () => { 
         const isActionTaken = this.RET_cc('Z');
         this.updateCycles(1, isActionTaken ? 20 : 8);
@@ -463,7 +464,7 @@ export default class CPU {
       },
       () => { this.LD_SP_HL(); this.updateCycles(1, 8); },
       () => {
-        this.LD_A_n(() => (this.MMU.readWord(this.registers.PC())));
+        this.LD_A_n(() => (this.MMU.readByte(this.MMU.readWord(this.registers.PC()))));
         this.registers.PC(this.registers.PC() + 2);
         this.updateCycles(3, 16);
       },
@@ -646,35 +647,47 @@ export default class CPU {
     this.IME = false;
   }
   step() {
+    /*
+    const pcList = document.getElementById('lastTenPC');
+    const childNodes = pcList.childNodes;
+    while (childNodes.length >= 10) {
+      pcList.removeChild(childNodes[0]);
+    }
+    const pc = document.createElement('li');
+    pc.innerHTML = '0x' + this.registers.PC().toString(16);
+
+    pcList.appendChild(pc);
+    */
+
     const opcode = this.MMU.readByte(this.registers.PC());
     this.registers.PC(this.registers.PC() + 1);
     this.instMap[opcode]();
     this.registers.PC(this.registers.PC() & 0xffff);
 
     if (this.IME) {
-      if (this.MMU.interruptEnabled.VBlank && this.MMU.interruptFlag.VBlank) {
+      if (this.interrupt.interruptEnabled.VBlank && this.interrupt.interruptFlag.VBlank) {
         this.IME = false;
-        this.MMU.interruptFlag.VBlank = false;
+        this.interrupt.interruptFlag.VBlank = false;
         this.RST_n(0x40);
         this.updateCycles(3, 12);
-      } else if (this.MMU.interruptEnabled.LCDStatus && this.MMU.interruptFlag.LCDStatus) {
+      } else if (this.interrupt.interruptEnabled.LCDStatus && this.interrupt.interruptFlag.LCDStatus) {
         this.IME = false;
-        this.MMU.interruptFlag.LCDStatus = false;
+        this.interrupt.interruptFlag.LCDStatus = false;
         this.RST_n(0x48);
         this.updateCycles(3, 12);
-      } else if (this.MMU.interruptEnabled.timer && this.MMU.interruptFlag.timer) {
+      } else if (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) {
         this.IME = false;
-        this.MMU.interruptFlag.timer = false;
+        this.interrupt.interruptFlag.timer = false;
         this.RST_n(0x50);
         this.updateCycles(3, 12);
-      } else if (this.MMU.interruptEnabled.serial && this.MMU.interruptFlag.serial) {
+      } else if (this.interrupt.interruptEnabled.serial && this.interrupt.interruptFlag.serial) {
         this.IME = false;
-        this.MMU.interruptFlag.serial = false;
+        this.interrupt.interruptFlag.serial = false;
         this.RST_n(0x58);
         this.updateCycles(3, 12);
-      } else if (this.MMU.interruptEnabled.input && this.MMU.interruptFlag.input) {
+      } else if (this.interrupt.interruptEnabled.input && this.interrupt.interruptFlag.input) {
         this.IME = false;
-        this.MMU.interruptFlag.input = false;
+        this.interrupt.interruptFlag.input = false;
         this.RST_n(0x60);
         this.updateCycles(3, 12);
       }
@@ -704,16 +717,16 @@ export default class CPU {
     n(this.registers.A());
   }
   LD_A_C() {
-    this.registers.A(this.MMU.readByte(0xff00 + this.signed(this.registers.C())));
+    this.registers.A(this.MMU.readByte(0xff00 + this.registers.C()));
   }
   LD_C_A() {
-    this.MMU.writeByte(0xff00 + this.signed(this.registers.C()), this.registers.A());
+    this.MMU.writeByte(0xff00 + this.registers.C(), this.registers.A());
   }
   LDH_n_A(n) {
-    this.MMU.writeByte(0xff00 + this.signed(n), this.registers.A());
+    this.MMU.writeByte(0xff00 + n, this.registers.A());
   }
   LDH_A_n(n) {
-    this.registers.A(this.MMU.readByte(0xff00 + this.signed(n)));
+    this.registers.A(this.MMU.readByte(0xff00 + n));
   }
   // 16-bits Loads
   LD_n_nn(n, nn) {

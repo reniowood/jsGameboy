@@ -1,7 +1,8 @@
 export default class MMU {
-  constructor(GPU, Input) {
+  constructor(GPU, input, interrupt) {
     this.GPU = GPU;
-    this.Input = Input;
+    this.input = input;
+    this.interrupt = interrupt;
 
     this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
     this.reset();
@@ -42,49 +43,6 @@ export default class MMU {
     for (let i=0; i<128; i+=1) {
       this.zeroPageRAM.push(0);
     }
-
-    this.interruptEnabled = {
-      VBlank: false,
-      LCDStatus: false,
-      timer: false,
-      serial: false,
-      input: false,
-      getByte: () => (
-        (this.VBlank ? 0x01 : 0x00) |
-        (this.LCDStatus ? 0x02 : 0x00) |
-        (this.timer ? 0x04 : 0x00) |
-        (this.serial ? 0x08 : 0x00) |
-        (this.input ? 0x10 : 0x00)
-      ),
-      setByte: (value) => {
-        this.VBlank = value & 0x01 ? true : false;
-        this.LCDStatus = value & 0x02 ? true : false;
-        this.timer = value & 0x04 ? true : false;
-        this.serial = value & 0x08 ? true : false;
-        this.input = value & 0x10 ? true : false;
-      }
-    };
-    this.interruptFlag = {
-      VBlank: false,
-      LCDStatus: false,
-      timer: false,
-      serial: false,
-      input: false,
-      getByte: () => (
-        (this.VBlank ? 0x01 : 0x00) |
-        (this.LCDStatus ? 0x02 : 0x00) |
-        (this.timer ? 0x04 : 0x00) |
-        (this.serial ? 0x08 : 0x00) |
-        (this.input ? 0x10 : 0x00)
-      ),
-      setByte: (value) => {
-        this.VBlank = value & 0x01 ? true : false;
-        this.LCDStatus = value & 0x02 ? true : false;
-        this.timer = value & 0x04 ? true : false;
-        this.serial = value & 0x08 ? true : false;
-        this.input = value & 0x10 ? true : false;
-      }
-    };
   }
   loadROM(rom) {
     this.ROM = rom;
@@ -143,7 +101,7 @@ export default class MMU {
             return 0;
           case 0x0f00:
             if (addr === 0xffff) {
-              return this.interruptEnabled.getByte();
+              return this.interrupt.getIE();
             }
             if (addr >= 0xff80) {
               return this.zeroPageRAM[addr & 0x7f];
@@ -152,11 +110,13 @@ export default class MMU {
             switch (addr & 0x00f0) {
               case 0x00:
                 if (addr === 0xff00) {
-                  return this.Input.readByte();
+                  return this.input.readByte();
                 }
                 if (addr === 0xff0f) {
-                  return this.interruptFlag.getByte();
+                  return this.interrupt.getIF();
                 }
+
+                break;
               case 0x40:
               case 0x50:
               case 0x60:
@@ -230,7 +190,7 @@ export default class MMU {
             return 0;
           case 0x0f00:
             if (addr === 0xffff) {
-              return this.interruptEnabled.setByte(value);
+              return this.interrupt.setIE(value);
             }
             if (addr >= 0xff80) {
               return this.zeroPageRAM[addr & 0x7f] = value;
@@ -239,8 +199,10 @@ export default class MMU {
             switch (addr & 0x00f0) {
               case 0x00:
                 if (addr === 0xff0f) {
-                  return this.interruptFlag.setByte(value);
+                  return this.interrupt.setIF(value);
                 }
+
+                break;
               case 0x40:
               case 0x50:
               case 0x60:
