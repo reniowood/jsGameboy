@@ -938,7 +938,7 @@ export default class CPU {
   }
   // Bit Opcodes
   BIT_b_r(b, r) {
-    this.setFlag(r() & (1 << b) === 0, false, true, this.registers.F.C());
+    this.setFlag((r() & (1 << b)) === 0, false, true, this.registers.F.C());
   }
   SET_b_r(b, r) {
     r(b, true);
