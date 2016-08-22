@@ -59,6 +59,7 @@ export default class CPU {
       () => { this.RLA(); this.updateCycles(1, 4); },
       () => {
         this.JR_n(this.MMU.readByte(this.registers.PC()));
+        this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 12);
       },
       () => { this.ADD_HLn(this.registers.DE); this.updateCycles(1, 8); },
