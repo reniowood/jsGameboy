@@ -107,21 +107,18 @@ export default class MMU {
               return this.zeroPageRAM[addr & 0x7f];
             }
 
-            switch (addr & 0x00f0) {
-              case 0x00:
-                if (addr === 0xff00) {
-                  return this.input.readByte();
-                }
-                if (addr === 0xff0f) {
-                  return this.interrupt.getIF();
-                }
-
-                break;
-              case 0x40:
-              case 0x50:
-              case 0x60:
-              case 0x70:
-                return this.GPU.readByte(addr);
+            if (addr === 0xff0f) {
+              return this.interrupt.getIF();
+            } else if (addr === 0xff00) {
+              return this.input.readByte();
+            } else {
+              switch (addr & 0x00f0) {
+                case 0x40:
+                case 0x50:
+                case 0x60:
+                case 0x70:
+                  return this.GPU.readByte(addr);
+              }
             }
 
             return 0;
@@ -198,6 +195,8 @@ export default class MMU {
 
             if (addr === 0xff0f) { // IF
               return this.interrupt.setIF(value);
+            } else if (addr === 0xff00) {
+              return this.input.writeByte(value);
             } else if (addr === 0xff46) { // DMA
               const base = 0xfe00;
               for (let i=0; i<0xa0; i+=1) {

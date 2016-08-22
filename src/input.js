@@ -1,64 +1,73 @@
 export default class Input {
   constructor() {
-    this.byte = 0x3f;
+    this.column = 0;
+    this.p14 = 0x0f; // RIGHT, LEFT, UP, DOWN
+    this.p15 = 0x0f; // A, B, SELECT, START
   }
   keydown(key) {
     switch (key) {
       case 'A':
-        this.byte &= ~((1 << 0) | (1 << 4));
+        this.p15 &= 0x0e;
         break;
       case 'B':
-        this.byte &= ~((1 << 1) | (1 << 4));
+        this.p15 &= 0x0d;
         break;
       case 'SELECT':
-        this.byte &= ~((1 << 2) | (1 << 4));
+        this.p15 &= 0x0b;
         break;
       case 'START':
-        this.byte &= ~((1 << 3) | (1 << 4));
+        this.p15 &= 0x07;
         break;
       case 'RIGHT':
-        this.byte &= ~((1 << 0) | (1 << 5));
+        this.p14 &= 0x0e;
         break;
       case 'LEFT':
-        this.byte &= ~((1 << 1) | (1 << 5));
+        this.p14 &= 0x0d;
         break;
       case 'UP':
-        this.byte &= ~((1 << 2) | (1 << 5));
+        this.p14 &= 0x0b;
         break;
       case 'DOWN':
-        this.byte &= ~((1 << 3) | (1 << 5));
+        this.p14 &= 0x07;
         break;
     }
   }
   keyup(key) {
     switch (key) {
       case 'A':
-        this.byte |= (1 << 0) | (1 << 4);
+        this.p15 |= 0x01;
         break;
       case 'B':
-        this.byte |= (1 << 1) | (1 << 4);
+        this.p15 |= 0x02;
         break;
       case 'SELECT':
-        this.byte |= (1 << 2) | (1 << 4);
+        this.p15 |= 0x04;
         break;
       case 'START':
-        this.byte |= (1 << 3) | (1 << 4);
+        this.p15 |= 0x08;
         break;
       case 'RIGHT':
-        this.byte |= (1 << 0) | (1 << 5);
+        this.p14 |= 0x01;
         break;
       case 'LEFT':
-        this.byte |= (1 << 1) | (1 << 5);
+        this.p14 |= 0x02;
         break;
       case 'UP':
-        this.byte |= (1 << 2) | (1 << 5);
+        this.p14 |= 0x04;
         break;
       case 'DOWN':
-        this.byte |= (1 << 3) | (1 << 5);
+        this.p14 |= 0x08;
         break;
     }
   }
   readByte() {
-    return this.byte;
+    if (this.column === 0x01) {
+      return this.p15;
+    } else {
+      return this.p14;
+    }
+  }
+  writeByte(value) {
+    this.column = (value >> 4);
   }
 }
