@@ -109,6 +109,13 @@ export default class GPU {
     this.registers[0xff4a - 0xff40] = 0x00; // wx
     this.registers[0xff4b - 0xff40] = 0x00; // wy
   }
+  signed(n) {
+    if (n & 0x80) {
+      n = -((~n + 1) & 0xff);
+    }
+
+    return n;
+  }
   step() {
     this.cycles += this.clock.cycles;
 
@@ -253,7 +260,9 @@ export default class GPU {
     let tileOffset = tileMapX;
     let x = xInTile;
     for (let i = 0; i < 160; i += 1) {
-      const tile = this.videoRAM[tileBase + tileOffset];
+      const tileIndex = this.videoRAM[tileBase + tileOffset];
+      const tile = this.bgTileSet === 0 ? 256 + signed(tileIndex) : tileIndex;
+
       renderedBackgroundRow[i] = {
         color: this.tiles[tile][yInTile][x],
         palette: this.palette,
