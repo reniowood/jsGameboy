@@ -245,14 +245,15 @@ export default class GPU {
 
     const tileMapBase = this.bgTileMap === 0 ? 0x1800 : 0x1c00;
     const tileMapX = this.screenX >> 3;
-    const tileMapY = (this.screenY + this.line) >> 3;
+    const tileMapY = ((this.screenY + this.line) & 0xff) >> 3;
     const xInTile = this.screenX & 0x07;
     const yInTile = (this.screenY + this.line) & 0x07;
 
-    let tileOffset = tileMapBase + tileMapY * 32 + tileMapX;
+    const tileBase = tileMapBase + tileMapY * 32;
+    let tileOffset = tileMapX;
     let x = xInTile;
     for (let i = 0; i < 160; i += 1) {
-      const tile = this.videoRAM[tileOffset];
+      const tile = this.videoRAM[tileBase + tileOffset];
       renderedBackgroundRow[i] = {
         color: this.tiles[tile][yInTile][x],
         palette: this.palette,
@@ -260,7 +261,7 @@ export default class GPU {
 
       x = (x + 1) % 8;
       if (x === 0) {
-        tileOffset += 1;
+        tileOffset = (tileOffset + 1) & 0x1f;
       }
     }
 
