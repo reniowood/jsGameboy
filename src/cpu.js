@@ -133,8 +133,20 @@ export default class CPU {
         this.updateCycles(1, 8);
       },
       () => { this.INC_nn(this.registers.SP); this.updateCycles(1, 4); },
-      () => { this.INC_n((value) => (this.MMU.writeByte(this.registers.HL(), value))); this.updateCycles(1, 12); },
-      () => { this.DEC_n((value) => (this.MMU.writeByte(this.registers.HL(), value))); this.updateCycles(1, 12); },
+      () => { this.INC_n((value) => {
+        if (value !== undefined) {
+          this.MMU.writeByte(this.registers.HL(), value);
+        }
+
+        return this.MMU.readByte(this.registers.HL());
+      }); this.updateCycles(1, 12); },
+      () => { this.DEC_n((value) => {
+        if (value !== undefined) {
+          this.MMU.writeByte(this.registers.HL(), value);
+        }
+
+        return this.MMU.readByte(this.registers.HL());
+      }); this.updateCycles(1, 12); },
       () => {
         this.LD_nn_n((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
