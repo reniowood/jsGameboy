@@ -305,10 +305,9 @@ export default class GPU {
 
       return 0;
     });
-    const sprites = orderedSprites.slice(Math.min(orderedSprites.length, 10));
+    const sprites = orderedSprites.slice(Math.max(orderedSprites.length - 10, 0));
 
-    for (let sprite of orderedSprites) {
-      console.log(sprite);
+    for (let sprite of sprites) {
       let tile, height;
       if (this.spriteHeight === 16) {
         if (this.line - sprite.y >= 8) {
@@ -338,7 +337,7 @@ export default class GPU {
           pixel = row[x];
         }
 
-        if (sprite.aboveBackground || (renderedBackgroundRow[sprite.x + x].color === 0)) {
+        if (pixel !== 0 && (sprite.aboveBackground || (renderedBackgroundRow[sprite.x + x].color === 0))) {
           renderedSpritesRow[sprite.x + x] = {
             color: pixel,
             palette: this.objectPalette[sprite.palette],
