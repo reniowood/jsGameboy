@@ -261,7 +261,7 @@ export default class GPU {
     let x = xInTile;
     for (let i = 0; i < 160; i += 1) {
       const tileIndex = this.videoRAM[tileBase + tileOffset];
-      const tile = this.bgTileSet === 0 ? 256 + signed(tileIndex) : tileIndex;
+      const tile = this.bgTileSet === 0 ? 256 + this.signed(tileIndex) : tileIndex;
 
       renderedBackgroundRow[i] = {
         color: this.tiles[tile][yInTile][x],
