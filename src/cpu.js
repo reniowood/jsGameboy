@@ -804,9 +804,9 @@ export default class CPU {
     this.registers.A(this.registers.A() - n());
   }
   SBC_n(n) {
-    const carryFlag = this.registers.F.Z() ? 1 : 0;
-    this.setFlag(((this.registers.A() - n() + carryFlag) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
-    this.registers.A(this.registers.A() - n() + carryFlag);
+    const carryFlag = this.registers.F.C() ? 1 : 0;
+    this.setFlag(((this.registers.A() - n() - carryFlag) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n() + carryFlag), this.isBorrow(this.registers.A(), n() + carryFlag));
+    this.registers.A(this.registers.A() - n() - carryFlag);
   }
   AND_n(n) {
     this.setFlag((this.registers.A() & n()) === 0, false, true, false);
