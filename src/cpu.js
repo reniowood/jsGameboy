@@ -568,7 +568,19 @@ export default class CPU {
           () => { op.call(this, i, this.registers.E); this.updateCycles(2, 8); },
           () => { op.call(this, i, this.registers.H); this.updateCycles(2, 8); },
           () => { op.call(this, i, this.registers.L); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+          () => { op.call(this, i, (value, index) => {
+            const byte = this.MMU.readByte(this.registers.HL());
+
+            if (value === undefined) {
+              return byte;
+            }
+
+            if (value) {
+              this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
+            } else {
+              this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
+            }
+          }); this.updateCycles(2, 16); },
           () => { op.call(this, i, this.registers.A); this.updateCycles(2, 8); },
         ]);
       }
@@ -957,10 +969,10 @@ export default class CPU {
     this.setFlag((r() & (1 << b)) === 0, false, true, this.registers.F.C());
   }
   SET_b_r(b, r) {
-    r(b, true);
+    r(true, b);
   }
   RES_b_r(b, r) {
-    r(b, false);
+    r(false, b);
   }
   // Jumps
   JP_nn(nn) {
