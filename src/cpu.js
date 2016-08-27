@@ -807,8 +807,8 @@ export default class CPU {
     this.registers.A(this.registers.A() + n());
   }
   ADC_An(n) {
-    const carryFlag = this.registers.F.Z() ? 1 : 0;
-    this.setFlag(((this.registers.A() + n() + carryFlag) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n(), carryFlag), this.isCarry(this.registers.A(), n(), carryFlag));
+    const carryFlag = this.registers.F.C() ? 1 : 0;
+    this.setFlag(((this.registers.A() + n() + carryFlag) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n() + carryFlag), this.isCarry(this.registers.A(), n() + carryFlag));
     this.registers.A(this.registers.A() + n() + carryFlag);
   }
   SUB_n(n) {
