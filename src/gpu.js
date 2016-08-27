@@ -117,7 +117,7 @@ export default class GPU {
     return n;
   }
   step() {
-    this.cycles += this.clock.cycles;
+    this.cycles += this.clock.lastInstCycles;
 
     switch (this.mode) {
       case this.MODE.HBLANK:

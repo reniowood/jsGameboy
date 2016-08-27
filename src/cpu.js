@@ -719,7 +719,7 @@ export default class CPU {
     }
   }
   updateCycles(m, c) {
-    this.clock.cycles = c;
+    this.clock.updateCycles(c);
   }
   signed(n) {
     if (n & 0x80) {

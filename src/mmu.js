@@ -1,8 +1,9 @@
 export default class MMU {
-  constructor(GPU, input, interrupt) {
+  constructor(clock, interrupt, GPU, input) {
+    this.clock = clock;
+    this.interrupt = interrupt;
     this.GPU = GPU;
     this.input = input;
-    this.interrupt = interrupt;
 
     this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
     this.reset();
@@ -107,10 +108,18 @@ export default class MMU {
               return this.zeroPageRAM[addr & 0x7f];
             }
 
-            if (addr === 0xff0f) {
-              return this.interrupt.getIF();
-            } else if (addr === 0xff00) {
+            if (addr === 0xff00) {
               return this.input.readByte();
+            } else if (addr === 0xff04) {
+              return this.clock.divider;
+            } else if (addr === 0xff05) {
+              return this.clock.counter;
+            } else if (addr === 0xff06) {
+              return this.clock.modulo;
+            } else if (addr === 0xff07) {
+              return this.clock.getControl();
+            } else if (addr === 0xff0f) {
+              return this.interrupt.getIF();
             } else {
               switch (addr & 0x00f0) {
                 case 0x40:
@@ -193,10 +202,18 @@ export default class MMU {
               return this.zeroPageRAM[addr & 0x7f] = value;
             }
 
-            if (addr === 0xff0f) { // IF
-              return this.interrupt.setIF(value);
-            } else if (addr === 0xff00) {
+            if (addr === 0xff00) {
               return this.input.writeByte(value);
+            } else if (addr === 0xff04) {
+              return this.clock.updateDivider(value);
+            } else if (addr === 0xff05) {
+              return this.clock.updateCounter(value);
+            } else if (addr === 0xff06) {
+              return this.clock.updateModulo(value);
+            } else if (addr === 0xff07) {
+              return this.clock.updateControl(value);
+            } else if (addr === 0xff0f) { // IF
+              return this.interrupt.setIF(value);
             } else if (addr === 0xff46) { // DMA
               const base = 0xfe00;
               for (let i=0; i<0xa0; i+=1) {

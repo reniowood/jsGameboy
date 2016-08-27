@@ -7,11 +7,11 @@ import CPU from './cpu';
 
 export default class Gameboy {
   constructor() {
-    this.clock = new Clock();
     this.input = new Input();
     this.interrupt = new Interrupt();
+    this.clock = new Clock(this.interrupt);
     this.GPU = new GPU(this.clock, this.interrupt);
-    this.MMU = new MMU(this.GPU, this.input, this.interrupt);
+    this.MMU = new MMU(this.clock, this.interrupt, this.GPU, this.input);
     this.CPU = new CPU(this.clock, this.interrupt, this.MMU);
 
     this.stop = undefined;
@@ -82,7 +82,7 @@ export default class Gameboy {
         return true;
       }
 
-      until -= this.clock.cycles;
+      until -= this.clock.lastInstCycles;
     } while (until >= 0);
 
     return false;
@@ -101,7 +101,7 @@ export default class Gameboy {
     return num.toString(2);
   }
   updateCycles() {
-    document.getElementById('cycles').value = this.clock.cycles;
+    document.getElementById('cycles').value = this.clock.lastInstCycles;
   }
   updateRegisters() {
     document.getElementById('regiA').value = this.toHex(this.CPU.registers.A());
