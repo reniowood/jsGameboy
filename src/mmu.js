@@ -9,8 +9,6 @@ export default class MMU {
     this.reset();
   }
   reset() {
-    this.isInBIOS = true;
-
     this.BIOS = [
       0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
       0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
@@ -54,9 +52,6 @@ export default class MMU {
       case 0x1000:
       case 0x2000:
       case 0x3000:
-        if (this.isInBIOS) {
-          if (addr < 0x0100) {
-            return this.BIOS[addr];
           }
         }
 
@@ -140,12 +135,6 @@ export default class MMU {
       case 0x1000:
       case 0x2000:
       case 0x3000:
-        if (this.isInBIOS) {
-          if (addr < 0x0100) {
-            return this.BIOS[addr];
-          }
-        }
-
         return this.ROM[addr];
       case 0x4000:
       case 0x5000:
