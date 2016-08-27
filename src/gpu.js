@@ -17,6 +17,7 @@ export default class GPU {
 
     this.canvas.putImageData(this.screen, 0, 0);
 
+    this.cycles = 0;
     this.line = 0;
     this.lineCompare = 0;
 
@@ -283,7 +284,7 @@ export default class GPU {
     });
 
     const filteredSprites = this.sprites.filter((sprite) => {
-      return this.line >= sprite.y && this.line < sprite.y + this.spriteHeight;
+      return sprite.x >= 0 && sprite.x < 160 && this.line >= sprite.y && this.line < sprite.y + this.spriteHeight;
     });
     const orderedSprites = filteredSprites.sort((a, b) => {
       if (a.x > b.x) {
