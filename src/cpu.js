@@ -492,6 +492,19 @@ export default class CPU {
       () => { this.RST_n(0x38); this.updateCycles(1, 16); },
     ];
 
+    function updateHLMem(value, index) {
+      const byte = this.MMU.readByte(this.registers.HL());
+
+      if (value === undefined) {
+        return byte;
+      }
+
+      if (value) {
+        this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
+      } else {
+        this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
+      }
+    }
     this.cbInstMap = [
       () => { this.RLC_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RLC_n(this.registers.C); this.updateCycles(2, 8); },
@@ -499,7 +512,7 @@ export default class CPU {
       () => { this.RLC_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.RLC_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RLC_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.RLC_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.RLCA(); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.C); this.updateCycles(2, 8); },
@@ -507,7 +520,7 @@ export default class CPU {
       () => { this.RRC_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.RRC_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.RRCA(); this.updateCycles(1, 4); },
       () => { this.RL_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.C); this.updateCycles(2, 8); },
@@ -515,7 +528,7 @@ export default class CPU {
       () => { this.RL_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.RL_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.RLA; this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.C); this.updateCycles(2, 8); },
@@ -523,7 +536,7 @@ export default class CPU {
       () => { this.RR_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.RR_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.RRA; this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.C); this.updateCycles(2, 8); },
@@ -531,7 +544,7 @@ export default class CPU {
       () => { this.SLA_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.SLA_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.SLA_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.SRA_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.SRA_n(this.registers.C); this.updateCycles(2, 8); },
@@ -539,7 +552,7 @@ export default class CPU {
       () => { this.SRA_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.SRA_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.SRA_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.SRA_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.SRA_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.SWAP_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.SWAP_n(this.registers.C); this.updateCycles(2, 8); },
@@ -547,7 +560,7 @@ export default class CPU {
       () => { this.SWAP_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.SWAP_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.SWAP_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.SWAP_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.SWAP_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.SRL_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.SRL_n(this.registers.C); this.updateCycles(2, 8); },
@@ -555,7 +568,7 @@ export default class CPU {
       () => { this.SRL_n(this.registers.E); this.updateCycles(2, 8); },
       () => { this.SRL_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.SRL_n(this.registers.L); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.MMU.readByte(this.registers.HL())); this.updateCycles(2, 16); },
+      () => { this.SRL_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
       () => { this.SRL_n(this.registers.A); this.updateCycles(2, 8); },
     ];
 
@@ -568,19 +581,7 @@ export default class CPU {
           () => { op.call(this, i, this.registers.E); this.updateCycles(2, 8); },
           () => { op.call(this, i, this.registers.H); this.updateCycles(2, 8); },
           () => { op.call(this, i, this.registers.L); this.updateCycles(2, 8); },
-          () => { op.call(this, i, (value, index) => {
-            const byte = this.MMU.readByte(this.registers.HL());
-
-            if (value === undefined) {
-              return byte;
-            }
-
-            if (value) {
-              this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
-            } else {
-              this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
-            }
-          }); this.updateCycles(2, 16); },
+          () => { op.call(this, i, (value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
           () => { op.call(this, i, this.registers.A); this.updateCycles(2, 8); },
         ]);
       }
