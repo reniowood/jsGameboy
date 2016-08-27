@@ -65,6 +65,6 @@ export default class Clock {
     this.control.runningTimer = value & 0x04 ? true : false;
   }
   getControl() {
-    return this.COUNTER_SPEED.indexOf(this.control.speed) | (this.control.runningTimer ? 0x04 : 0x00);
+    return this.COUNTER_SPEED.indexOf(this.control.counterSpeed) | (this.control.runningTimer ? 0x04 : 0x00);
   }
 }
