@@ -395,7 +395,7 @@ export default class CPU {
       },
       this.NOP,
       () => {
-        this.SBC_n(this.MMU.readByte(this.registers.PC()));
+        this.SBC_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
