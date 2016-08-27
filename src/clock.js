@@ -30,18 +30,18 @@ export default class Clock {
   updateCycles(lastInstCycles) {
     this.lastInstCycles = lastInstCycles;
 
-    if (this.control.runningTimer) {
-      this.dividerCycles += lastInstCycles;
-      if (dividerCycles >= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED) {
-        this.divider += 1;
-        if (this.divider > 0xff) {
-          this.divider = 0;
-        }
-        this.dividerCycles %= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED;
+    this.dividerCycles += lastInstCycles;
+    if (this.dividerCycles >= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED) {
+      this.divider += 1;
+      if (this.divider > 0xff) {
+        this.divider = 0;
       }
+      this.dividerCycles %= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED;
+    }
 
+    if (this.control.runningTimer) {
       this.counterCycles += lastInstCycles;
-      if (counterCycles >= this.CYCLES_PER_SECOND / this.control.counterSpeed) {
+      if (this.counterCycles >= this.CYCLES_PER_SECOND / this.control.counterSpeed) {
         this.counter += 1;
         if (this.counter > 0xff) {
           this.interrupt.interruptFlag.timer = true;
