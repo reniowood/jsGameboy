@@ -28,10 +28,54 @@ export default class MMU {
       0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
     ]; // 0x0000 - 0x00ff
     // Video RAM: 0x8000 - 0x9fff
+
+    this.MBC_TYPE = {
+      0x00: "ROM_ONLY",
+      0x01: "ROM_MBC1",
+      0x02: "ROM_MBC1_RAM",
+      0x03: "ROM_MBC1_RAM_BAT",
+      0x05: "ROM_MBC2",
+      0x06: "ROM_MBC2_BAT",
+      0x11: "ROM_MBC3",
+      0x12: "ROM_MBC3_RAM",
+      0x13: "ROM_MBC3_RAM_BAT",
+      0x19: "ROM_MBC5",
+      0x1a: "ROM_MBC5_RAM",
+      0x1b: "ROM_MBC5_RAM_BAT"
+    };
+    this.MBC = this.MBC_TYPE[0x00];
+    this.NUM_ROM_BANKS_TYPE = {
+      0: 2,
+      1: 4,
+      2: 8,
+      3: 16,
+      4: 32,
+      5: 64,
+      6: 128,
+      0x52: 72,
+      0x53: 80,
+      0x54: 96
+    };
+    this.NUM_ROM_BANKS = this.NUM_ROM_BANKS_TYPE[0];
+    this.RAM_SIZE = {
+      0: 0,
+      1: 2048,
+      2: 8196,
+      3: 32768,
+      4: 131072
+    };
+    this.NUM_RAM_BANKS_TYPE = {
+      0: 0,
+      1: 1,
+      2: 1,
+      3: 4,
+      4: 16
+    };
+    this.NUM_RAM_BANKS = this.NUM_RAM_BANKS_TYPE[0];
+    this.currentROMBank = 1;
+    this.currentRAMBank = 0;
+
     this.cartridgeRAM = []; // 0xa000 - 0xbfff
-    for (let i=0; i<8192; i+=1) {
-      this.cartridgeRAM.push(0);
-    }
     this.workingRAM = []; // 0xc000 - 0xdfff / 0xe000 - 0xfdff (shadow)
     for (let i=0; i<8192; i+=1) {
       this.workingRAM.push(0);
@@ -42,9 +86,24 @@ export default class MMU {
     for (let i=0; i<128; i+=1) {
       this.zeroPageRAM.push(0);
     }
+
+    this.isRAMEnabled = false;
+    this.BANKING_MODE = {
+      ROM: 0x00,
+      RAM: 0x01
+    };
+    this.bankingMode = this.BANKING_MODE.ROM;
   }
   loadROM(rom) {
     this.ROM = rom;
+    this.MBC = this.MBC_TYPE[rom[0x0147]];
+    this.NUM_ROM_BANKS = this.NUM_ROM_BANKS_TYPE[rom[0x0148]];
+    this.NUM_RAM_BANKS = this.NUM_RAM_BANKS_TYPE[rom[0x0149]];
+
+    const RAMSize = this.MBC.startsWith("ROM_MBC2") ? 512 : this.RAM_SIZE[rom[0x0149]];
+    for (let i=0; i<RAMSize; i+=1) {
+      this.cartridgeRAM.push(0);
+    }
   }
   readByte(addr) {
     switch (addr & 0xf000) {
@@ -52,21 +111,25 @@ export default class MMU {
       case 0x1000:
       case 0x2000:
       case 0x3000:
-          }
-        }
-
         return this.ROM[addr];
       case 0x4000:
       case 0x5000:
       case 0x6000:
       case 0x7000:
-        return this.ROM[addr];
+        return this.ROM[(this.currentROMBank - 1) * 0x4000 + addr];
       case 0x8000:
       case 0x9000:
         return this.GPU.videoRAM[addr & 0x1fff];
       case 0xa000:
+        if (this.MBC.startsWith("ROM_MBC2")) {
+          return this.cartridgeRAM[addr & 0x1fff] & 0x0f;
+        }
       case 0xb000:
-        return this.cartridgeRAM[addr & 0x1fff];
+        if (!this.MBC.startsWith("ROM_MBC2")) {
+          return this.cartridgeRAM[this.currentRAMBank * 0x4000 + (addr & 0x1fff)];
+        }
+
+        break;
       case 0xc000:
       case 0xd000:
         return this.workingRAM[addr & 0x1fff];
@@ -133,14 +196,74 @@ export default class MMU {
     switch (addr & 0xf000) {
       case 0x0000:
       case 0x1000:
+        if (this.MBC.startsWith("ROM_MBC1") || this.MBC.startsWith("ROM_MBC3") || this.MBC.startsWith("ROM_MBC5")) {
+          if (value & 0x0f === 0x0a) {
+            this.isRAMEnabled = true;
+          } else {
+            this.isRAMEnabled = false;
+          }
+        } else if (this.MBC.startsWith("ROM_MBC2")) {
+          if ((addr & 0xf0) >> 4 === 0) {
+            if (value & 0x0f === 0x0a) {
+              this.isRAMEnabled = true;
+            } else {
+              this.isRAMEnabled = false;
+            }
+          }
+        }
+
+        break;
       case 0x2000:
+        if (this.MBC.startsWith("ROM_MBC5")) {
+          this.currentROMBank &= 0x0100;
+          this.currentROMBank |= value;
+        }
       case 0x3000:
-        return this.ROM[addr];
+        if (this.MBC.startsWith("ROM_MBC1")) {
+          const lower5Bits = value & 0x1f;
+          const ROMBank = lower5Bits % 0x20 === 0 ? lower5Bits + 1 : lower5Bits;
+
+          this.currentROMBank &= 0xe0;
+          this.currentROMBank |= ROMBank;
+        } else if (this.MBC.startsWith("ROM_MBC2")) {
+          if ((addr & 0xf0) >> 4 === 1) {
+            this.currentROMBank = value & 0x0f;
+          }
+        } else if (this.MBC.startsWith("ROM_MBC3")) {
+          this.currentROMBank = (value & 0x7f) === 0 ? 1 : value & 0x7f;
+        } else if (this.MBC.startsWith("ROM_MBC5")) {
+          this.currentROMBank &= 0x00ff;
+          this.currentROMBank |= (value & 0x01) << 8;
+        }
+
+        break;
       case 0x4000:
       case 0x5000:
+        if (this.MBC.startsWith("ROM_MBC1")) {
+          if (this.bankingMode === this.BANKING_MODE.ROM) {
+            this.currentROMBank &= 0x9f;
+            this.currentROMBank |= (value & 0x03) << 5;
+          } else {
+            this.currentRAMBank = value & 0x03;
+          }
+        } else if (this.MBC.startsWith("ROM_MBC3")) {
+          this.currentRAMBank = value & 0x03;
+        } else if (this.MBC.startsWith("ROM_MBC5")) {
+          this.currentRAMBank = value & 0x0f;
+        }
+
+        break;
       case 0x6000:
       case 0x7000:
-        return this.ROM[addr];
+        if (this.MBC.startsWith("ROM_MBC1")) {
+          if (value & 0x03 === 0x00) {
+            this.bankingMode = this.BANKING_MODE.ROM;
+          } else if (value & 0x01 === 0x01) {
+            this.bankingMode = this.BANKING_MODE.RAM;
+          }
+        }
+
+        break;
       case 0x8000:
       case 0x9000:
         this.GPU.videoRAM[addr & 0x1fff] = value;
@@ -150,8 +273,15 @@ export default class MMU {
 
         return this.GPU.videoRAM[addr & 0x1fff];
       case 0xa000:
+        if (this.MBC.startsWith("ROM_MBC2")) {
+          return this.cartridgeRAM[addr & 0x1fff] = value & 0x0f;
+        }
       case 0xb000:
-        return this.cartridgeRAM[addr & 0x1fff] = value;
+        if (!this.MBC.startsWith("ROM_MBC2")) {
+          return this.cartridgeRAM[this.currentRAMBank * 0x4000 + (addr & 0x1fff)] = value;
+        }
+
+        break;
       case 0xc000:
       case 0xd000:
         return this.workingRAM[addr & 0x1fff] = value;
