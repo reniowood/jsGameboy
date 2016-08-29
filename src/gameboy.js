@@ -12,7 +12,7 @@ export default class Gameboy {
     this.clock = new Clock(this.interrupt);
     this.GPU = new GPU(this.clock, this.interrupt);
     this.MMU = new MMU(this.clock, this.interrupt, this.GPU, this.input);
-    this.CPU = new CPU(this.clock, this.interrupt, this.MMU);
+    this.CPU = new CPU(this.clock, this.interrupt, this.MMU, this.GPU);
 
     this.stop = undefined;
   }
@@ -140,6 +140,9 @@ export default class Gameboy {
     }
   }
   keydown(key) {
+    this.CPU.isStopped = false;
+    this.GPU.isStopped = false;
+
     this.input.keydown(key);
   }
   keyup(key) {

@@ -1,8 +1,9 @@
 export default class CPU {
-  constructor(clock, interrupt, MMU) {
+  constructor(clock, interrupt, MMU, GPU) {
     this.clock = clock;
     this.interrupt = interrupt;
     this.MMU = MMU;
+    this.GPU = GPU;
 
     this.reset();
     this.updateInstMap();
@@ -671,6 +672,8 @@ export default class CPU {
     };
 
     this.IME = false;
+    this.isHalted = false;
+    this.isStopped = false;
   }
   step() {
     /*
@@ -692,26 +695,31 @@ export default class CPU {
 
     if (this.IME) {
       if (this.interrupt.interruptEnabled.VBlank && this.interrupt.interruptFlag.VBlank) {
+        this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.VBlank = false;
         this.RST_n(0x40);
         this.updateCycles(3, 12);
       } else if (this.interrupt.interruptEnabled.LCDStatus && this.interrupt.interruptFlag.LCDStatus) {
+        this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.LCDStatus = false;
         this.RST_n(0x48);
         this.updateCycles(3, 12);
       } else if (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) {
+        this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.timer = false;
         this.RST_n(0x50);
         this.updateCycles(3, 12);
       } else if (this.interrupt.interruptEnabled.serial && this.interrupt.interruptFlag.serial) {
+        this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.serial = false;
         this.RST_n(0x58);
         this.updateCycles(3, 12);
       } else if (this.interrupt.interruptEnabled.input && this.interrupt.interruptFlag.input) {
+        this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.input = false;
         this.RST_n(0x60);
@@ -898,10 +906,11 @@ export default class CPU {
   NOP() {
   }
   HALT() {
-    // TODO
+    this.isHalted = true;
   }
   STOP() {
-    // TODO
+    this.isStopped = true;
+    this.GPU.isStopped = true;
   }
   DI() {
     this.IME = false;
