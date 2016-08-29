@@ -135,9 +135,9 @@ export default class GPU {
 
             this.canvas.putImageData(this.screen, 0, 0);
 
-            this.writeByte(0xff41, 0x01);
+            this.mode = this.MODE.VBLANK;
           } else {
-            this.writeByte(0xff41, 0x02);
+            this.mode = this.MODE.SCANLINE_OAM;
           }
 
           this.cycles = 0;
@@ -146,7 +146,7 @@ export default class GPU {
         break;
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
-          this.writeByte(0xff41, 0x03);
+          this.mode = this.MODE.SCANLINE_VRAM;
 
           if (this.OAMInterrupt) {
             this.interrupt.interruptFlag.LCDStatus = true;
@@ -158,7 +158,7 @@ export default class GPU {
         break;
       case this.MODE.SCANLINE_VRAM:
         if (this.cycles >= 172) {
-          this.writeByte(0xff41, 0x00);
+          this.mode = this.MODE.HBLANK;
 
           this.coincidenceFlag = this.line === this.lineCompare;
           if (this.lineCompareInterrupt) {
@@ -177,7 +177,7 @@ export default class GPU {
           this.line += 1;
 
           if (this.line === 154) {
-            this.writeByte(0xff41, 0x00);
+            this.mode = this.MODE.HBLANK;
 
             this.line = 0;
           }
