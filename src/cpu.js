@@ -351,7 +351,7 @@ export default class CPU {
         this.updateCycles(3, 24);
       },
       () => {
-        this.ADC_An(this.MMU.readByte(this.registers.PC()));
+        this.ADC_An(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
         this.updateCycles(2, 8);
       },
@@ -845,11 +845,11 @@ export default class CPU {
     this.setFlag(this.registers.A() === n(), true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
   }
   INC_n(n) {
-    this.setFlag(n() + 1 === 0, false, this.isHalfCarry(n(), 1), this.registers.F.C());
+    this.setFlag(((n() + 1) & 0xff) === 0, false, this.isHalfCarry(n(), 1), this.registers.F.C());
     n(n() + 1);
   }
   DEC_n(n) {
-    this.setFlag(n() - 1 === 0, true, this.isHalfBorrow(n(), 1), this.registers.F.C());
+    this.setFlag(((n() - 1) & 0xff) === 0, true, this.isHalfBorrow(n(), 1), this.registers.F.C());
     n(n() - 1);
   }
   // 16-bits ALU
