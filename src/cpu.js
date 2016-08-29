@@ -874,24 +874,31 @@ export default class CPU {
     n(lowerNibbles << 4 | upperNibbles);
   }
   DAA() {
+    let a = this.registers.A();
+
     if (this.registers.F.N()) {
+      if (this.registers.F.H()) {
+        a = (a - 0x06) & 0xff;
+      }
       if (this.registers.F.C()) {
-        this.registers.A(this.registers.A() - 0x60);
-      } else {
-        this.registers.A(this.registers.A() - 0x06);
+        a -= 0x60;
       }
     } else {
-      if (this.registers.F.C() || (this.registers.A() & 0xff) > 0x99) {
-        this.registers.A(this.registers.A() + 0x60);
-        this.registers.F.C(true);
+      if (this.registers.F.H() || (a & 0x0f) > 0x09) {
+        a += 0x06;
       }
-      if (this.registers.F.H() ||  (this.registers.A() & 0x0f) > 0x09) {
-        this.registers.A(this.registers.A() + 0x06);
+      if (this.registers.F.C() || a > 0x9F) {
+        a += 0x60;
       }
     }
 
-    this.registers.F.Z(this.registers.A() === 0);
+    this.registers.F.Z((a & 0xff) === 0);
     this.registers.F.H(false);
+    if ((a & 0x100) === 0x100) {
+      this.registers.F.C(true);
+    }
+
+    this.registers.A(a);
   }
   CPL() {
     this.setFlag(this.registers.F.Z(), true, true, this.registers.F.C());
