@@ -667,7 +667,7 @@ export default class CPU {
         }
 
         this.registers.A((value >> 8) & 0xff);
-        this.registers.F(value & 0xff);
+        this.registers.F(value & 0xf0);
       },
     };
 
