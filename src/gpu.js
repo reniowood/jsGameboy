@@ -107,8 +107,8 @@ export default class GPU {
     this.registers[0xff47 - 0xff40] = 0xfc; // bgp
     this.registers[0xff48 - 0xff40] = 0xff; // obp0
     this.registers[0xff49 - 0xff40] = 0xff; // obp1
-    this.registers[0xff4a - 0xff40] = 0x00; // wx
-    this.registers[0xff4b - 0xff40] = 0x00; // wy
+    this.registers[0xff4a - 0xff40] = 0x00; // wy
+    this.registers[0xff4b - 0xff40] = 0x00; // wx
   }
   signed(n) {
     if (n & 0x80) {
@@ -277,6 +277,43 @@ export default class GPU {
 
     return renderedBackgroundRow;
   }
+  renderWindow(renderedBackgroundRow) {
+    const windowX = this.registers[0xff4b - 0xff40];
+    const windowY = this.registers[0xff4a - 0xff40];
+
+    if (windowX < 0 || windowX > 166 || windowY < 0 || windowY > 143) {
+      return renderedBackgroundRow;
+    }
+
+    if (this.line >= windowY) {
+      const tileMapBase = this.windowTileMap === 0 ? 0x1800 : 0x1c00;
+      const tileMapX = 0;
+      const tileMapY = ((this.line - windowY) & 0xff) >> 3;
+      const xInTile = 0;
+      const yInTile = (this.line - windowY) & 0x07;
+
+      const tileBase = tileMapBase + tileMapY * 32;
+      let tileOffset = tileMapX;
+      let x = xInTile;
+      for (let i = windowX - 7; i < 160; i += 1) {
+        const tileIndex = this.videoRAM[tileBase + tileOffset];
+        const tile = this.bgTileSet === 0 ? 256 + this.signed(tileIndex) : tileIndex;
+
+        renderedBackgroundRow[i] = {
+          color: this.tiles[tile][yInTile][x],
+          palette: this.palette,
+        };
+
+        x = (x + 1) % 8;
+        if (x === 0) {
+          tileOffset += 1;
+        }
+      }
+      // console.log(this.line, windowY, this.line - windowY, renderedBackgroundRow.map((pixel) => (pixel.color)));
+    }
+
+    return renderedBackgroundRow;
+  }
   renderSprites(renderedBackgroundRow) {
     let renderedSpritesRow = new Array(160).fill({
       color: -1,
@@ -374,13 +411,14 @@ export default class GPU {
       this.renderRow(renderedBackgroundRow);
     }
 
-    let renderedSpritesRow = new Array(160).fill({
-      color: -1,
-      palette: this.palette,
-    });
+    if (this.isWindowOn) {
+      renderedBackgroundRow = this.renderWindow(renderedBackgroundRow);
+
+      this.renderRow(renderedBackgroundRow);
+    }
 
     if (this.isSpritesOn) {
-      renderedSpritesRow = this.renderSprites(renderedBackgroundRow);
+      const renderedSpritesRow = this.renderSprites(renderedBackgroundRow);
 
       this.renderRow(renderedSpritesRow);
     }
@@ -456,6 +494,9 @@ export default class GPU {
       case 0x49: // Object Palette 1
         this.registers[addr - 0xff40] = value;
         return this.updatePalette(this.objectPalette[1], value);
+      case 0x4a: // Window Y
+      case 0x4b: // Window X
+        return this.registers[addr - 0xff40] = value;
     }
   }
 }
