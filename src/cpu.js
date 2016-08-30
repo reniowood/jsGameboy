@@ -786,7 +786,7 @@ export default class CPU {
     this.registers.SP(this.registers.HL());
   }
   LDHL_SP_n(n) {
-    this.setFlag(false, false, this.isCarry(this.registers.SP(), n), this.is16BitsCarry(this.registers.SP(), n));
+    this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(n)), this.isCarry(this.registers.SP(), this.signed(n)));
     this.registers.HL(this.registers.SP() + this.signed(n));
   }
   LD_nn_SP(nn) {
@@ -882,7 +882,7 @@ export default class CPU {
     this.registers.HL(this.registers.HL() + n());
   }
   ADD_SPn(n) {
-    this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.SP(), this.signed(n())), this.is16BitsCarry(this.registers.SP(), this.signed(n())));
+    this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(n())), this.isCarry(this.registers.SP(), this.signed(n())));
     this.registers.SP(this.registers.SP() + this.signed(n()));
   }
   INC_nn(nn) {
