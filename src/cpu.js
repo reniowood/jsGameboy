@@ -500,10 +500,16 @@ export default class CPU {
         return byte;
       }
 
-      if (value) {
-        this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
+      if (index !== undefined) {
+        if (value) {
+          this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
+        } else {
+          this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
+        }
       } else {
-        this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
+        if (value !== undefined) {
+          this.MMU.writeByte(this.registers.HL(), value);
+        }
       }
     }
     this.cbInstMap = [
