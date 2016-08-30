@@ -808,11 +808,19 @@ export default class CPU {
     this.registers.F.H(H ? 1 : 0);
     this.registers.F.C(C ? 1 : 0);
   }
-  isHalfCarry(...registers) {
-    return registers.reduce((sum, register) => (sum += register & 0xf), 0) > 0xf;
+  isHalfCarry(r1, r2) {
+    if (r2 >= 0) {
+      return (r1 & 0xf) + (r2 & 0xf) > 0xf;
+    } else {
+      return ((r1 + r2) & 0xf) <= (r1 & 0xf);
+    }
   }
-  isCarry(...registers) {
-    return registers.reduce((sum, register) => (sum += register), 0) > 0xff;
+  isCarry(r1, r2) {
+    if (r2 >= 0) {
+      return (r1 & 0xff) + (r2 & 0xff) > 0xff;
+    } else {
+      return ((r1 + r2) & 0xff) <= (r1 & 0xff);
+    }
   }
   is16BitsHalfCarry(...registers) {
     return registers.reduce((sum, register) => (sum += register & 0xfff), 0) > 0xfff;
