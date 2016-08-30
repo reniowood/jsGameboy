@@ -514,7 +514,7 @@ export default class CPU {
       () => { this.RLC_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RLC_n(this.registers.L); this.updateCycles(2, 8); },
       () => { this.RLC_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
-      () => { this.RLCA(); this.updateCycles(2, 8); },
+      () => { this.RLC_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.C); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.D); this.updateCycles(2, 8); },
@@ -522,7 +522,7 @@ export default class CPU {
       () => { this.RRC_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.L); this.updateCycles(2, 8); },
       () => { this.RRC_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
-      () => { this.RRCA(); this.updateCycles(1, 4); },
+      () => { this.RRC_n(this.registers.A); this.updateCycles(1, 4); },
       () => { this.RL_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.C); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.D); this.updateCycles(2, 8); },
@@ -530,7 +530,7 @@ export default class CPU {
       () => { this.RL_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.L); this.updateCycles(2, 8); },
       () => { this.RL_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
-      () => { this.RLA; this.updateCycles(2, 8); },
+      () => { this.RL_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.C); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.D); this.updateCycles(2, 8); },
@@ -538,7 +538,7 @@ export default class CPU {
       () => { this.RR_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RR_n(this.registers.L); this.updateCycles(2, 8); },
       () => { this.RR_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
-      () => { this.RRA; this.updateCycles(2, 8); },
+      () => { this.RR_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.C); this.updateCycles(2, 8); },
       () => { this.SLA_n(this.registers.D); this.updateCycles(2, 8); },
@@ -910,7 +910,7 @@ export default class CPU {
   // Miscellaneous
   SWAP_n(n) {
     const upperNibbles = (n() >> 4) & 0xf, lowerNibbles = n() & 0xf;
-    this.setFlag(lowerNibbles << 4 | upperNibbles === 0, false, false, false);
+    this.setFlag((lowerNibbles << 4 | upperNibbles) === 0, false, false, false);
     n(lowerNibbles << 4 | upperNibbles);
   }
   DAA() {
@@ -968,31 +968,31 @@ export default class CPU {
   // Rotates & Shifts
   RLCA() {
     const result = this.registers.A() << 1 | (this.registers.A() & 0x80) >> 7;
-    this.setFlag(result === 0, false, false, this.registers.A() & 0x80);
+    this.setFlag(false, false, false, this.registers.A() & 0x80);
     this.registers.A(result);
   }
   RLA() {
     const result = this.registers.A() << 1 | this.registers.F.C();
-    this.setFlag(result === 0, false, false, this.registers.A() & 0x80);
+    this.setFlag(false, false, false, this.registers.A() & 0x80);
     this.registers.A(result);
   }
   RRCA() {
     const result = this.registers.A() >> 1 | (this.registers.A() & 0x01) << 7;
-    this.setFlag(result === 0, false, false, this.registers.A() & 0x01);
+    this.setFlag(false, false, false, this.registers.A() & 0x01);
     this.registers.A(result);
   }
   RRA() {
     const result = this.registers.A() >> 1 | this.registers.F.C() << 7;
-    this.setFlag(result === 0, false, false, this.registers.A() & 0x01);
+    this.setFlag(false, false, false, this.registers.A() & 0x01);
     this.registers.A(result);
   }
   RLC_n(n) {
-    const result = n() << 1 | (n() & 0x80) >> 7;
+    const result = ((n() << 1) & 0xff) | (n() & 0x80) >> 7;
     this.setFlag(result === 0, false, false, n() & 0x80);
     n(result);
   }
   RL_n(n) {
-    const result = n() << 1 | this.registers.F.C();
+    const result = ((n() << 1) & 0xff) | this.registers.F.C();
     this.setFlag(result === 0, false, false, n() & 0x80);
     n(result);
   }
@@ -1012,7 +1012,7 @@ export default class CPU {
     n(result);
   }
   SRA_n(n) {
-    const result = n() >> 1 | (n() & 0x80) << 7;
+    const result = n() >> 1 | (n() & 0x80);
     this.setFlag(result === 0, false, false, n() & 0x01);
     n(result);
   }
