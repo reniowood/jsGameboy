@@ -689,8 +689,12 @@ export default class CPU {
     */
 
     const opcode = this.MMU.readByte(this.registers.PC());
-    this.registers.PC(this.registers.PC() + 1);
-    this.instMap[opcode]();
+      if (this.isHalted) {
+        this.clock.updateCycles(4);
+      } else {
+        this.registers.PC(this.registers.PC() + 1);
+        this.instMap[opcode]();
+      }
     this.registers.PC(this.registers.PC() & 0xffff);
 
     if (this.IME) {
@@ -724,6 +728,18 @@ export default class CPU {
         this.interrupt.interruptFlag.input = false;
         this.RST_n(0x60);
         this.updateCycles(3, 12);
+      }
+    } else {
+      if (this.interrupt.interruptFlag.VBlank) {
+        this.isHalted = false;
+      } else if (this.interrupt.interruptFlag.LCDStatus) {
+        this.isHalted = false;
+      } else if (this.interrupt.interruptFlag.timer) {
+        this.isHalted = false;
+      } else if (this.interrupt.interruptFlag.serial) {
+        this.isHalted = false;
+      } else if (this.interrupt.interruptFlag.input) {
+        this.isHalted = false;
       }
     }
   }
