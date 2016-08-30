@@ -61,7 +61,7 @@ export default class Clock {
     this.modulo = value;
   }
   updateControl(value) {
-    this.control.speed = this.COUNTER_SPEED[value & 0x03];
+    this.control.counterSpeed = this.COUNTER_SPEED[value & 0x03];
     this.control.runningTimer = value & 0x04 ? true : false;
   }
   getControl() {
