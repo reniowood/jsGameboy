@@ -32,7 +32,7 @@ export default class Clock {
 
     this.dividerCycles += lastInstCycles;
     if (this.dividerCycles >= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED) {
-      this.divider += 1;
+      this.divider += Math.floor(this.dividerCycles / (this.CYCLES_PER_SECOND / this.DIVIDER_SPEED));
       if (this.divider > 0xff) {
         this.divider = 0;
       }
@@ -42,7 +42,7 @@ export default class Clock {
     if (this.control.runningTimer) {
       this.counterCycles += lastInstCycles;
       if (this.counterCycles >= this.CYCLES_PER_SECOND / this.control.counterSpeed) {
-        this.counter += 1;
+        this.counter += Math.floor(this.counterCycles / (this.CYCLES_PER_SECOND / this.control.counterSpeed));
         if (this.counter > 0xff) {
           this.interrupt.interruptFlag.timer = true;
           this.counter = this.modulo;
