@@ -42,7 +42,7 @@ export default class CPU {
         this.updateCycles(2, 8);
       },
       () => { this.RRCA(); this.updateCycles(1, 4); },
-      () => { this.STOP(); this.updateCycles(2, 4); },
+      () => { this.STOP(); this.updateCycles(0, 0); },
       () => {
         this.LD_n_nn(this.registers.DE, this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
@@ -133,7 +133,7 @@ export default class CPU {
         this.DEC_nn(this.registers.HL);
         this.updateCycles(1, 8);
       },
-      () => { this.INC_nn(this.registers.SP); this.updateCycles(1, 4); },
+      () => { this.INC_nn(this.registers.SP); this.updateCycles(2, 8); },
       () => { this.INC_n((value) => {
         if (value !== undefined) {
           this.MMU.writeByte(this.registers.HL(), value);
@@ -228,8 +228,8 @@ export default class CPU {
       () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.E); this.updateCycles(1, 8); },
       () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.H); this.updateCycles(1, 8); },
       () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.L); this.updateCycles(1, 8); },
-      () => { this.HALT(); this.updateCycles(1, 4); },
-      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value))); this.updateCycles(1, 4); },
+      () => { this.HALT(); this.updateCycles(0, 0); },
+      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value))); this.updateCycles(1, 8); },
       () => { this.LD_A_n(this.registers.B); this.updateCycles(1, 4); },
       () => { this.LD_A_n(this.registers.C); this.updateCycles(1, 4); },
       () => { this.LD_A_n(this.registers.D); this.updateCycles(1, 4); },
@@ -313,7 +313,7 @@ export default class CPU {
       },
       () => {
         this.JP_nn(this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, 12);
+        this.updateCycles(3, 16);
       },
       () => {
         const isActionTaken = this.CALL_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
@@ -340,7 +340,7 @@ export default class CPU {
         this.registers.PC(this.registers.PC() + 1);
         this.cbInstMap[opcode]();
         this.registers.PC(this.registers.PC() & 0xffff);
-        this.updateCycles(1, 4);
+        this.updateCycles(0, 0);
       },
       () => {
         const isActionTaken = this.CALL_cc_nn('Z', this.MMU.readWord(this.registers.PC()));
@@ -528,7 +528,7 @@ export default class CPU {
       () => { this.RRC_n(this.registers.H); this.updateCycles(2, 8); },
       () => { this.RRC_n(this.registers.L); this.updateCycles(2, 8); },
       () => { this.RRC_n((value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(2, 16); },
-      () => { this.RRC_n(this.registers.A); this.updateCycles(1, 4); },
+      () => { this.RRC_n(this.registers.A); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.B); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.C); this.updateCycles(2, 8); },
       () => { this.RL_n(this.registers.D); this.updateCycles(2, 8); },
@@ -579,7 +579,21 @@ export default class CPU {
       () => { this.SRL_n(this.registers.A); this.updateCycles(2, 8); },
     ];
 
-    [this.BIT_b_r, this.RES_b_r, this.SET_b_r].forEach((op) => {
+    [this.BIT_b_r].forEach((op) => {
+      for (let i=0; i<8; i+=1) {
+        this.cbInstMap = this.cbInstMap.concat([
+          () => { op.call(this, i, this.registers.B); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.C); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.D); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.E); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.H); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.L); this.updateCycles(2, 8); },
+          () => { op.call(this, i, (value, index) => (updateHLMem.call(this, value, index))); this.updateCycles(3, 12); },
+          () => { op.call(this, i, this.registers.A); this.updateCycles(2, 8); },
+        ]);
+      }
+    });
+    [this.RES_b_r, this.SET_b_r].forEach((op) => {
       for (let i=0; i<8; i+=1) {
         this.cbInstMap = this.cbInstMap.concat([
           () => { op.call(this, i, this.registers.B); this.updateCycles(2, 8); },
@@ -696,7 +710,7 @@ export default class CPU {
 
     const opcode = this.MMU.readByte(this.registers.PC());
       if (this.isHalted) {
-        this.clock.updateCycles(4);
+        this.clock.updateCycles(1, 4);
       } else {
         this.registers.PC(this.registers.PC() + 1);
         this.instMap[opcode]();
