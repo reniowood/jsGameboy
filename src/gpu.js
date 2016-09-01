@@ -120,7 +120,7 @@ export default class GPU {
     return n;
   }
   step() {
-    if (this.isStoppped) {
+    if (this.isStopped) {
       return;
     }
 
