@@ -31,23 +31,25 @@ export default class Clock {
     this.lastInstCycles = lastInstCycles;
 
     this.dividerCycles += lastInstCycles;
-    if (this.dividerCycles >= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED) {
-      this.divider += Math.floor(this.dividerCycles / (this.CYCLES_PER_SECOND / this.DIVIDER_SPEED));
+    const cyclesPerDivider = this.CYCLES_PER_SECOND / this.DIVIDER_SPEED;
+    if (this.dividerCycles >= cyclesPerDivider) {
+      this.divider += Math.floor(this.dividerCycles / cyclesPerDivider);
       if (this.divider > 0xff) {
-        this.divider = 0;
+        this.divider = this.divider - 0x100;
       }
-      this.dividerCycles %= this.CYCLES_PER_SECOND / this.DIVIDER_SPEED;
+      this.dividerCycles %= cyclesPerDivider;
     }
 
     if (this.control.runningTimer) {
       this.counterCycles += lastInstCycles;
-      if (this.counterCycles >= this.CYCLES_PER_SECOND / this.control.counterSpeed) {
-        this.counter += Math.floor(this.counterCycles / (this.CYCLES_PER_SECOND / this.control.counterSpeed));
+      const cyclesPerCounter = this.CYCLES_PER_SECOND / this.control.counterSpeed;
+      if (this.counterCycles >= cyclesPerCounter) {
+        this.counter += Math.floor(this.counterCycles / cyclesPerCounter);
         if (this.counter > 0xff) {
           this.interrupt.interruptFlag.timer = true;
-          this.counter = this.modulo;
+          this.counter = this.modulo + (this.counter - 0x100);
         }
-        this.counterCycles %= this.CYCLES_PER_SECOND / this.control.counterSpeed;
+        this.counterCycles %= cyclesPerCounter;
       }
     }
   }
