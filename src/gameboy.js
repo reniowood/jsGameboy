@@ -140,9 +140,6 @@ export default class Gameboy {
     }
   }
   keydown(key) {
-    this.CPU.isStopped = false;
-    this.GPU.isStopped = false;
-
     this.input.keydown(key);
   }
   keyup(key) {

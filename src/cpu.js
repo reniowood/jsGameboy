@@ -1025,8 +1025,6 @@ export default class CPU {
     this.isHalted = true;
   }
   STOP() {
-    this.isStopped = true;
-    this.GPU.isStopped = true;
   }
   DI() {
     this.IME = false;

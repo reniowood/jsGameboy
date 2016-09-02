@@ -109,8 +109,6 @@ export default class GPU {
     this.registers[0xff49 - 0xff40] = 0xff; // obp1
     this.registers[0xff4a - 0xff40] = 0x00; // wy
     this.registers[0xff4b - 0xff40] = 0x00; // wx
-
-    this.isStopped = false;
   }
   signed(n) {
     if (n & 0x80) {
@@ -120,10 +118,6 @@ export default class GPU {
     return n;
   }
   step() {
-    if (this.isStopped) {
-      return;
-    }
-
     this.cycles += this.clock.lastInstCycles;
 
     switch (this.mode) {
