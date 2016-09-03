@@ -124,28 +124,28 @@ document.body.onkeydown = (event) => {
   switch (event.keyCode) {
     case keyCode.B:
       gameboy.keydown('B');
-      break;
+      return false;
     case keyCode.A:
       gameboy.keydown('A');
-      break;
+      return false;
     case keyCode.START:
       gameboy.keydown('START');
-      break;
+      return false;
     case keyCode.SELECT:
       gameboy.keydown('SELECT');
-      break;
+      return false;
     case keyCode.UP:
       gameboy.keydown('UP');
-      break;
+      return false;
     case keyCode.DOWN:
       gameboy.keydown('DOWN');
-      break;
+      return false;
     case keyCode.LEFT:
       gameboy.keydown('LEFT');
-      break;
+      return false;
     case keyCode.RIGHT:
       gameboy.keydown('RIGHT');
-      break;
+      return false;
   }
 };
 
@@ -153,27 +153,27 @@ document.body.onkeyup = (event) => {
   switch (event.keyCode) {
     case keyCode.B:
       gameboy.keyup('B');
-      break;
+      return false;
     case keyCode.A:
       gameboy.keyup('A');
-      break;
+      return false;
     case keyCode.START:
       gameboy.keyup('START');
-      break;
+      return false;
     case keyCode.SELECT:
       gameboy.keyup('SELECT');
-      break;
+      return false;
     case keyCode.UP:
       gameboy.keyup('UP');
-      break;
+      return false;
     case keyCode.DOWN:
       gameboy.keyup('DOWN');
-      break;
+      return false;
     case keyCode.LEFT:
       gameboy.keyup('LEFT');
-      break;
+      return false;
     case keyCode.RIGHT:
       gameboy.keyup('RIGHT');
-      break;
+      return false;
   }
 };
