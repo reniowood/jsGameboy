@@ -195,11 +195,9 @@ export default class GPU {
     switch (index) {
       case 0:
         this.sprites[sprite].y = value - 16;
-        console.log(sprite, 'y', value - 16);
         break;
       case 1:
         this.sprites[sprite].x = value - 8;
-        console.log(sprite, 'x', value - 8);
         break;
       case 2:
         this.sprites[sprite].tile = value;
