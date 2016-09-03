@@ -20,25 +20,13 @@ export default class Gameboy {
       this.MMU.loadROM(rom);
   }
   run() {
-    const breakPoint = parseInt(document.getElementById('breakpoint').value, 16);
+    return new Promise((resolve, reject) => {
+      this.stop = setInterval(() => {
+        this.frame();
+      }, 1);
 
-    if (!isNaN(breakPoint)) {
-      return new Promise((resolve, reject) => {
-        this.stop = setInterval(() => {
-          if (this.frame(breakPoint)) {
-            resolve(true);
-          }
-        }, 1);
-      });
-    } else {
-      return new Promise((resolve, reject) => {
-        this.stop = setInterval(() => {
-          this.frame();
-        }, 1);
-
-        resolve(false);
-      });
-    }
+      resolve(false);
+    });
   }
   pause() {
     if (this.stop) {
@@ -76,68 +64,11 @@ export default class Gameboy {
 
     do {
       this.step();
-      if (this.CPU.registers.PC() === breakPoint) {
-        clearInterval(this.stop);
-
-        return true;
-      }
 
       until -= this.clock.lastInstCycles;
     } while (until >= 0);
 
     return false;
-  }
-  updateDebugger() {
-    this.updateCycles();
-    this.updateRegisters();
-    this.updateMemory();
-
-    document.getElementById('IME').value = this.CPU.IME;
-  }
-  toHex(num) {
-    return '0x' + num.toString(16);
-  }
-  toBin(num) {
-    return num.toString(2);
-  }
-  updateCycles() {
-    document.getElementById('cycles').value = this.clock.lastInstCycles;
-  }
-  updateRegisters() {
-    document.getElementById('regiA').value = this.toHex(this.CPU.registers.A());
-    document.getElementById('regiF').value = this.toBin(this.CPU.registers.F() >> 4);
-    document.getElementById('regiB').value = this.toHex(this.CPU.registers.B());
-    document.getElementById('regiC').value = this.toHex(this.CPU.registers.C());
-    document.getElementById('regiD').value = this.toHex(this.CPU.registers.D());
-    document.getElementById('regiE').value = this.toHex(this.CPU.registers.E());
-    document.getElementById('regiHL').value = this.toHex(this.CPU.registers.HL());
-    document.getElementById('regiSP').value = this.toHex(this.CPU.registers.SP());
-    document.getElementById('regiPC').value = this.toHex(this.CPU.registers.PC());
-  }
-  updateMemory() {
-    // videoRAM
-    const videoRAMElement = document.getElementById('videoRAM');
-    while (videoRAMElement.firstChild) {
-      videoRAMElement.removeChild(videoRAMElement.firstChild);
-    }
-
-    const videoRAM = this.GPU.videoRAM;
-    const videoRAMSize = videoRAM.length;
-    for (let i = 0; i < videoRAMSize; i += 16) {
-      const ramLineElement = document.createElement('div');
-
-      const addr = document.createElement('span');
-      addr.innerHTML = `${(0x8000 + i).toString(16)}: `;
-      ramLineElement.appendChild(addr);
-
-      for (let j = 0; j < 16; j += 1) {
-        const byte = document.createElement('span');
-        byte.innerHTML = `${videoRAM[i + j].toString(16)} `;
-        ramLineElement.appendChild(byte);
-      }
-
-      videoRAMElement.appendChild(ramLineElement);
-    }
   }
   keydown(key) {
     this.input.keydown(key);

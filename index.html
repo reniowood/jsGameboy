@@ -2,68 +2,46 @@
 <html>
   <head>
     <title>jsGameboy</title>
+    <style>
+      #gameboy {
+        background-image: url("gbcase.png");
+        background-size: 100% auto;
+
+        width: 500px;
+        height: 820px;
+      }
+
+      #screen {
+        position: absolute;
+        top: 121px;
+        left: 130px;
+        width: 255px;
+        height: 232px;
+      }
+
+      #keyStart { position: absolute; top: 640px; left: 260px; }
+      #keySelect { position: absolute; top: 640px; left: 180px; }
+      #keyB { position: absolute; top: 563px; left: 350px; }
+      #keyA { position: absolute; top: 526px; left: 430px; }
+      #keyLeft { position: absolute; top: 550px; left: 65px; }
+      #keyRight { position: absolute; top: 550px; left: 140px; }
+      #keyUp { position: absolute; top: 515px; left: 105px; }
+      #keyDown { position: absolute; top: 590px; left: 105px; }
+      .keyLabel { font-weight: bold; color: white; }
+    </style>
   </head>
   <body>
+    <div id="gameboy">
+    </div>
     <canvas id="screen" width="160" height="144"></canvas>
-    <input id="fileInput" type="file">
-    <div>
-      <label for="cycles">Cycles</label><input id="cycles" type="text">
-    </div>
-    <div>
-      <button id="run" type="button">run</button>
-      <button id="pause" type="button" disabled>pause</button>
-      <button id="reset" type="button">reset</button>
-      <button id="step" type="button">step</button>
-      <button id="frame" type="button">frame</button>
-      <button id="10" type="button">10</button>
-      <button id="100" type="button">100</button>
-      <button id="1000" type="button">1000</button>
-      <button id="10000" type="button">10000</button>
-    </div>
-    <div>
-      <label for="instCount">instruction count</label><input id="instCount" type="text">
-      <button id="runInstCount" type="button">run n instructions</button>
-    </div>
-    <div>
-      <label for="breakpoint">break at:</label><input id="breakpoint" type="text">
-    </div>
-    <div id="memory">
-      <label for="addr">addr</label><input id="memoryAddr" type="text">
-      <button id="showMemory" type="button">show</button>
-      <label for="value">value</label><input id="memoryValue" type="text">
-    </div>
-    <div>
-      <label for="IME">IME</label><input id="IME" type="text">
-    </div>
-    <div>
-      <div>
-        <label for="regiA">A</label><input id="regiA" type="text">
-        <label for="regiF">F</label><input id="regiF" type="text">
-      </div>
-      <div>
-        <label for="regiB">B</label><input id="regiB" type="text">
-        <label for="regiC">C</label><input id="regiC" type="text">
-      </div>
-      <div>
-        <label for="regiD">D</label><input id="regiD" type="text">
-        <label for="regiE">E</label><input id="regiE" type="text">
-      </div>
-      <div>
-        <label for="regiHL">HL</label><input id="regiHL" type="text">
-      </div>
-      <div>
-        <label for="regiSP">SP</label><input id="regiSP" type="text">
-      </div>
-      <div>
-        <label for="regiPC">PC</label><input id="regiPC" type="text">
-      </div>
-    </div>
-    <div>
-      <ul id="lastTenPC">
-      </ul>
-    </div>
-    <div id="videoRAM">
-    </div>
+    <span id="keyStart" class="keyLabel">A</span>
+    <span id="keySelect" class="keyLabel">S</span>
+    <span id="keyB" class="keyLabel">Z</span>
+    <span id="keyA" class="keyLabel">X</span>
+    <span id="keyLeft" class="keyLabel">←</span>
+    <span id="keyRight" class="keyLabel">→</span>
+    <span id="keyUp" class="keyLabel">↑</span>
+    <span id="keyDown" class="keyLabel">↓</span>
     <script src="dist/bundle.js"></script>
   </body>
 </html>
