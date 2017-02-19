@@ -467,7 +467,6 @@ export default class GPU {
 
         return value;
       case 0x41: // STAT
-        this.mode = value & 0x03;
         this.coincidenceFlag = (value & 0x04) ? true : false;
         this.HBlankInterrupt = (value & 0x08) ? true : false;
         this.VBlankInterrupt = (value & 0x10) ? true : false;
