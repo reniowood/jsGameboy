@@ -743,6 +743,7 @@ export default class CPU {
     this.IME = false;
     this.isHalted = false;
     this.isStopped = false;
+    this.justIMESetup = false;
   }
   step() {
     /*
@@ -766,7 +767,7 @@ export default class CPU {
       }
     this.registers.PC(this.registers.PC() & 0xffff);
 
-    if (this.IME) {
+    if (this.IME && !this.justIMESetup) {
       if (this.interrupt.interruptEnabled.VBlank && this.interrupt.interruptFlag.VBlank) {
         this.isHalted = false;
         this.IME = false;
@@ -810,6 +811,10 @@ export default class CPU {
       } else if (this.interrupt.interruptFlag.input) {
         this.isHalted = false;
       }
+    }
+
+    if (this.justIMESetup) {
+      this.justIMESetup = false;
     }
   }
   updateCycles(m, c) {
@@ -1031,6 +1036,7 @@ export default class CPU {
   }
   EI() {
     this.IME = true;
+    this.justIMESetup = true;
   }
   // Rotates & Shifts
   RLCA() {
