@@ -136,21 +136,18 @@ export default class CPU {
       () => { this.INC_nn(this.registers.SP); this.updateCycles(2, 8); },
       () => {
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.INC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
+        this.updateCycles(3, 12);
       },
       () => {
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.DEC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
+        this.updateCycles(3, 12);
       },
       () => {
-        this.updateCycles(1, 4);
         this.LD_nn_n((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, 8);
+        this.updateCycles(3, 12);
       },
       () => { this.SCF(); this.updateCycles(1, 4); },
       () => {
@@ -404,10 +401,9 @@ export default class CPU {
         this.updateCycles(1, 16);
       },
       () => {
-        this.updateCycles(1, 4);
         this.LDH_n_A(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, 8);
+        this.updateCycles(3, 12);
       },
       () => {
         this.POP_nn(this.registers.HL);
@@ -436,10 +432,9 @@ export default class CPU {
         this.updateCycles(1, 4);
       },
       () => {
-        this.updateCycles(2, 8);
         this.LD_n_A((value) => (this.MMU.writeByte(this.MMU.readWord(this.registers.PC()), value)));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(1, 8);
+        this.updateCycles(4, 16);
       },
       this.NOP,
       this.NOP,
@@ -454,10 +449,9 @@ export default class CPU {
         this.updateCycles(1, 16);
       },
       () => {
-        this.updateCycles(1, 4);
         this.LDH_A_n(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, 8);
+        this.updateCycles(3, 12);
       },
       () => {
         this.POP_nn(this.registers.AF);
@@ -759,45 +753,68 @@ export default class CPU {
     */
 
     const opcode = this.MMU.readByte(this.registers.PC());
-      if (this.isHalted) {
-        this.clock.updateCycles(1, 4);
-      } else {
-        this.registers.PC(this.registers.PC() + 1);
-        this.instMap[opcode]();
-      }
+    if (this.logUpdateCycles) {
+      console.log('opcode: 0x' + this.MMU.readByte(this.registers.PC()).toString(16));
+    }
+    if (this.isHalted) {
+      this.clock.updateCycles(1, 4);
+    } else {
+      this.registers.PC(this.registers.PC() + 1);
+      this.instMap[opcode]();
+    }
     this.registers.PC(this.registers.PC() & 0xffff);
 
+    this.checkInterrupt();
+
+    this.GPU.step();
+
+    this.checkInterrupt();
+
+    if (this.logUpdateCycles) {
+      console.log(this.GPU.mode + ' - GPU cycles: ' + this.GPU.cycles);
+    }
+
+    if (this.justIMESetup) {
+      this.justIMESetup = false;
+    }
+  }
+  checkInterrupt() {
     if (this.IME && !this.justIMESetup) {
       if (this.interrupt.interruptEnabled.VBlank && this.interrupt.interruptFlag.VBlank) {
         this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.VBlank = false;
         this.RST_n(0x40);
-        this.updateCycles(3, 12);
+        this.updateCycles(5, 20);
+        this.GPU.step();
       } else if (this.interrupt.interruptEnabled.LCDStatus && this.interrupt.interruptFlag.LCDStatus) {
         this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.LCDStatus = false;
         this.RST_n(0x48);
-        this.updateCycles(3, 12);
+        this.updateCycles(5, 20);
+        this.GPU.step();
       } else if (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) {
         this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.timer = false;
         this.RST_n(0x50);
-        this.updateCycles(3, 12);
+        this.updateCycles(5, 20);
+        this.GPU.step();
       } else if (this.interrupt.interruptEnabled.serial && this.interrupt.interruptFlag.serial) {
         this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.serial = false;
         this.RST_n(0x58);
-        this.updateCycles(3, 12);
+        this.updateCycles(5, 20);
+        this.GPU.step();
       } else if (this.interrupt.interruptEnabled.input && this.interrupt.interruptFlag.input) {
         this.isHalted = false;
         this.IME = false;
         this.interrupt.interruptFlag.input = false;
         this.RST_n(0x60);
-        this.updateCycles(3, 12);
+        this.updateCycles(5, 20);
+        this.GPU.step();
       }
     } else {
       if (this.interrupt.interruptFlag.VBlank) {
@@ -812,12 +829,11 @@ export default class CPU {
         this.isHalted = false;
       }
     }
-
-    if (this.justIMESetup) {
-      this.justIMESetup = false;
-    }
   }
   updateCycles(m, c) {
+    if (this.logUpdateCycles) {
+      console.log('updateCycles: ' + c);
+    }
     this.clock.updateCycles(c);
   }
   signed(n) {

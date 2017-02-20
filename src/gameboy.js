@@ -65,7 +65,6 @@ export default class Gameboy {
   }
   step() {
     this.CPU.step();
-    this.GPU.step();
 
     if (this.CPU.registers.PC() === 0x0100) {
       this.MMU.isInBIOS = false;

@@ -123,14 +123,9 @@ export default class GPU {
     switch (this.mode) {
       case this.MODE.HBLANK:
         if (this.cycles >= 204) {
-          this.cycles = 0;
-          
-          if (this.HBlankInterrupt) {
-            this.interrupt.interruptFlag.LCDStatus = true;
-          }
+          this.cycles -= 204;
 
           this.line += 1;
-
           if (this.line === 144) {
             this.mode = this.MODE.VBLANK;
 
@@ -152,7 +147,7 @@ export default class GPU {
         break;
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
-          this.cycles = 0;
+          this.cycles -= 80;
 
           this.mode = this.MODE.SCANLINE_VRAM;
         }
@@ -160,9 +155,13 @@ export default class GPU {
         break;
       case this.MODE.SCANLINE_VRAM:
         if (this.cycles >= 172) {
-          this.cycles = 0;
+          this.cycles -= 172;
 
           this.mode = this.MODE.HBLANK;
+          
+          if (this.HBlankInterrupt) {
+            this.interrupt.interruptFlag.LCDStatus = true;
+          }
 
           this.render();
         }
@@ -170,7 +169,7 @@ export default class GPU {
         break;
       case this.MODE.VBLANK:
         if (this.cycles >= 456) {
-          this.cycles = 0;
+          this.cycles -= 456;
 
           this.coincidenceFlag = this.line === this.lineCompare;
           if (this.lineCompareInterrupt) {
@@ -476,8 +475,6 @@ export default class GPU {
         this.VBlankInterrupt = (value & 0x10) ? true : false;
         this.OAMInterrupt = (value & 0x20) ? true : false;
         this.lineCompareInterrupt = (value & 0x40) ? true : false;
-
-        this.cycles = 0;
 
         break;
       case 0x42: // Scroll-Y
