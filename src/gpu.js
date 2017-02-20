@@ -92,7 +92,7 @@ export default class GPU {
       SCANLINE_OAM: 2,
       SCANLINE_VRAM: 3,
     };
-    this.mode = this.MODE.HBLANK; 
+    this.mode = this.MODE.SCANLINE_OAM; 
     this.coincidenceFlag = false;
     this.HBlankInterrupt = false;
     this.VBlankInterrupt = false;
@@ -123,66 +123,70 @@ export default class GPU {
     switch (this.mode) {
       case this.MODE.HBLANK:
         if (this.cycles >= 204) {
+          this.cycles = 0;
+          
           if (this.HBlankInterrupt) {
             this.interrupt.interruptFlag.LCDStatus = true;
           }
 
+          this.line += 1;
+
           if (this.line === 144) {
-            if (this.VBlankInterrupt) {
+            this.mode = this.MODE.VBLANK;
+
+            if (this.VBlankInterrupt || this.OAMInterrupt) {
               this.interrupt.interruptFlag.LCDStatus = true;
             }
             this.interrupt.interruptFlag.VBlank = true;
 
             this.canvas.putImageData(this.screen, 0, 0);
-
-            this.mode = this.MODE.VBLANK;
           } else {
             this.mode = this.MODE.SCANLINE_OAM;
-          }
 
-          this.cycles = 0;
+            if (this.OAMInterrupt) {
+              this.interrupt.interruptFlag.LCDStatus = true;
+            }
+          }
         }
 
         break;
       case this.MODE.SCANLINE_OAM:
         if (this.cycles >= 80) {
-          this.mode = this.MODE.SCANLINE_VRAM;
-
-          if (this.OAMInterrupt) {
-            this.interrupt.interruptFlag.LCDStatus = true;
-          }
-
           this.cycles = 0;
+
+          this.mode = this.MODE.SCANLINE_VRAM;
         }
 
         break;
       case this.MODE.SCANLINE_VRAM:
         if (this.cycles >= 172) {
+          this.cycles = 0;
+
           this.mode = this.MODE.HBLANK;
+
+          this.render();
+        }
+
+        break;
+      case this.MODE.VBLANK:
+        if (this.cycles >= 456) {
+          this.cycles = 0;
 
           this.coincidenceFlag = this.line === this.lineCompare;
           if (this.lineCompareInterrupt) {
             this.interrupt.interruptFlag.LCDStatus = true;
           }
 
-          this.render();
-
           this.line += 1;
-          this.cycles = 0;
-        }
-
-        break;
-      case this.MODE.VBLANK:
-        if (this.cycles >= 456) {
-          this.line += 1;
-
           if (this.line === 154) {
-            this.mode = this.MODE.HBLANK;
+            this.mode = this.MODE.SCANLINE_OAM;
+
+            if (this.OAMInterrupt) {
+              this.interrupt.interruptFlag.LCDStatus = true;
+            }
 
             this.line = 0;
           }
-
-          this.cycles = 0;
         }
 
         break;
