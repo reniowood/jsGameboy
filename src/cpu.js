@@ -1,642 +1,513 @@
 export default class CPU {
-  constructor(clock, interrupt, MMU, GPU) {
-    this.clock = clock;
-    this.interrupt = interrupt;
-    this.MMU = MMU;
-    this.GPU = GPU;
-
+  constructor() {
     this.reset();
     this.updateInstMap();
   }
   updateInstMap() {
     this.instMap = [
-      () => { this.NOP(); this.updateCycles(1, 4); },
-      () => {
+      () => { this.NOP(); }, // 1
+      () => { // 3
         this.LD_n_nn(this.registers.BC, this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 12);
-      },
-      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.BC(), value))); this.updateCycles(1, 8); },
-      () => { this.INC_nn(this.registers.BC); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.B(), this.registers.B); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.B(), this.registers.B); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.BC(), value))); }, // 2
+      () => { this.INC_nn(this.registers.BC); }, // 2
+      () => { this.INC_n(this.registers.B(), this.registers.B); }, // 1
+      () => { this.DEC_n(this.registers.B(), this.registers.B); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.B, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.RLCA(); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.RLCA(); }, // 1
+      () => { // 5
         this.LD_nn_SP(this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 20);
-      },
-      () => { this.ADD_HLn(this.registers.BC); this.updateCycles(1, 8); },
-      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.BC()))); this.updateCycles(1, 8); },
-      () => { this.DEC_nn(this.registers.BC); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.C(), this.registers.C); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.C(), this.registers.C); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.ADD_HLn(this.registers.BC); }, // 2
+      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.BC()))); }, // 2
+      () => { this.DEC_nn(this.registers.BC); },  // 2
+      () => { this.INC_n(this.registers.C(), this.registers.C); }, // 1
+      () => { this.DEC_n(this.registers.C(), this.registers.C); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.C, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.RRCA(); this.updateCycles(1, 4); },
-      () => { this.STOP(); this.updateCycles(0, 0); },
-      () => {
+        },
+      () => { this.RRCA(); }, // 1
+      () => { this.STOP(); }, // 0
+      () => { // 3
         this.LD_n_nn(this.registers.DE, this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 12);
-      },
-      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.DE(), value))); this.updateCycles(1, 8); },
-      () => { this.INC_nn(this.registers.DE); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.D(), this.registers.D); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.D(), this.registers.D); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.DE(), value))); }, // 2
+      () => { this.INC_nn(this.registers.DE); }, // 2
+      () => { this.INC_n(this.registers.D(), this.registers.D); }, // 1
+      () => { this.DEC_n(this.registers.D(), this.registers.D); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.D, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.RLA(); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.RLA(); }, // 1
+      () => { // 3
         this.JR_n(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 12);
-      },
-      () => { this.ADD_HLn(this.registers.DE); this.updateCycles(1, 8); },
-      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.DE()))); this.updateCycles(1, 8); },
-      () => { this.DEC_nn(this.registers.DE); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.E(), this.registers.E); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.E(), this.registers.E); this.updateCycles(1, 4); },
-      () => {
+        },
+      () => { this.ADD_HLn(this.registers.DE); }, // 2
+      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.DE()))); }, // 2
+      () => { this.DEC_nn(this.registers.DE); }, // 2
+      () => { this.INC_n(this.registers.E(), this.registers.E); }, // 1
+      () => { this.DEC_n(this.registers.E(), this.registers.E); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.E, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.RRA(); this.updateCycles(1, 4); },
-      () => {
-        const isActionTaken = this.JR_cc_n('NZ', this.MMU.readByte(this.registers.PC()));
+        },
+      () => { this.RRA(); }, // 1
+      () => { // 3/2
+        this.JR_cc_n('NZ');
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, isActionTaken ? 12 : 8);
       },
-      () => {
+      () => { // 3
         this.LD_n_nn(this.registers.HL, this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 12);
-      },
-      () => { // LD (HL+), A = LDI (HL), A = LD (HL), A - INC_nn HL
+        },
+      () => { // 2 LD (HL+), A = LDI (HL), A = LD (HL), A - INC_nn HL
         this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.INC_nn(this.registers.HL);
-        this.updateCycles(1, 8);
-      },
-      () => { this.INC_nn(this.registers.HL); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.H(), this.registers.H); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.H(), this.registers.H); this.updateCycles(1, 4); },
-      () => {
+        this.registers.HL(this.registers.HL() + 1);
+        },
+      () => { this.INC_nn(this.registers.HL); }, // 2
+      () => { this.INC_n(this.registers.H(), this.registers.H); }, // 1
+      () => { this.DEC_n(this.registers.H(), this.registers.H); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.H, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.DAA(); this.updateCycles(1, 4); },
-      () => {
-        const isActionTaken = this.JR_cc_n('Z', this.MMU.readByte(this.registers.PC()));
+        },
+      () => { this.DAA(); }, // 1
+      () => { // 3/2
+        this.JR_cc_n('Z');
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, isActionTaken ? 12 : 8);
       },
-      () => { this.ADD_HLn(this.registers.HL); this.updateCycles(1, 8); },
-      () => { // LD A, (HL+) = LDI A, (HL) = LD A, (HL) - INC_nn HL
+      () => { this.ADD_HLn(this.registers.HL); }, // 2
+      () => { // 2 LD A, (HL+) = LDI A, (HL) = LD A, (HL) - INC_nn HL
         this.LD_A_n(() => (this.MMU.readByte(this.registers.HL())));
-        this.INC_nn(this.registers.HL);
-        this.updateCycles(1, 8);
-      },
-      () => { this.DEC_nn(this.registers.HL); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.L(), this.registers.L); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.L(), this.registers.L); this.updateCycles(1, 4); },
-      () => {
+        this.registers.HL(this.registers.HL() + 1);
+        },
+      () => { this.DEC_nn(this.registers.HL); }, // 2
+      () => { this.INC_n(this.registers.L(), this.registers.L); }, // 1
+      () => { this.DEC_n(this.registers.L(), this.registers.L); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.L, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.CPL(); this.updateCycles(1, 4); },
-      () => {
-        const isActionTaken = this.JR_cc_n('NC', this.MMU.readByte(this.registers.PC()));
+        },
+      () => { this.CPL(); }, // 1
+      () => { // 3/2
+        this.JR_cc_n('NC');
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, isActionTaken ? 12 : 8);
       },
-      () => {
+      () => { // 3
         this.LD_n_nn(this.registers.SP, this.MMU.readWord(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(3, 12);
-      },
-      () => { // LD (HL-), A = LDD (HL), A = LD (HL), A - DEC_nn HL
+        },
+      () => { // 2 LD (HL-), A = LDD (HL), A = LD (HL), A - DEC_nn HL
         this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.DEC_nn(this.registers.HL);
-        this.updateCycles(1, 8);
-      },
-      () => { this.INC_nn(this.registers.SP); this.updateCycles(2, 8); },
-      () => {
+        this.registers.HL(this.registers.HL() - 1);
+        },
+      () => { this.INC_nn(this.registers.SP); }, // 2
+      () => { // 3
         const value = this.MMU.readByte(this.registers.HL());
         this.INC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(3, 12);
-      },
-      () => {
+        },
+      () => { // 3
         const value = this.MMU.readByte(this.registers.HL());
         this.DEC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(3, 12);
-      },
-      () => {
+        },
+      () => { // 3
         this.LD_nn_n((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(3, 12);
-      },
-      () => { this.SCF(); this.updateCycles(1, 4); },
-      () => {
-        const isActionTaken = this.JR_cc_n('C', this.MMU.readByte(this.registers.PC()));
+        },
+      () => { this.SCF(); }, // 1
+      () => { // 3/2
+        this.JR_cc_n('C');
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(1, isActionTaken ? 12 : 8);
       },
-      () => { this.ADD_HLn(this.registers.SP); this.updateCycles(1, 8); },
-      () => { // LD A, (HL-) = LDD A, (HL) = LD A, (HL) - DEC_nn HL
+      () => { this.ADD_HLn(this.registers.SP); }, // 2
+      () => { // 2 LD A, (HL-) = LDD A, (HL) = LD A, (HL) - DEC_nn HL
         this.LD_A_n(() => (this.MMU.readByte(this.registers.HL())));
-        this.DEC_nn(this.registers.HL);
-        this.updateCycles(1, 8);
-      },
-      () => { this.DEC_nn(this.registers.SP); this.updateCycles(1, 8); },
-      () => { this.INC_n(this.registers.A(), this.registers.A); this.updateCycles(1, 4); },
-      () => { this.DEC_n(this.registers.A(), this.registers.A); this.updateCycles(1, 4); },
-      () => {
+        this.registers.HL(this.registers.HL() - 1);
+        },
+      () => { this.DEC_nn(this.registers.SP); }, // 2
+      () => { this.INC_n(this.registers.A(), this.registers.A); }, // 1
+      () => { this.DEC_n(this.registers.A(), this.registers.A); }, // 1
+      () => { // 2
         this.LD_nn_n(this.registers.A, this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
-      },
-      () => { this.CCF(); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.B, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.C, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.D, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.E, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.H, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2(this.registers.L, () => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_n_A(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.B); this.updateCycles(1, 8); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.C); this.updateCycles(1, 8); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.D); this.updateCycles(1, 8); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.E); this.updateCycles(1, 8); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.H); this.updateCycles(1, 8); },
-      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.L); this.updateCycles(1, 8); },
-      () => { this.HALT(); this.updateCycles(0, 0); },
-      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value))); this.updateCycles(1, 8); },
-      () => { this.LD_A_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.LD_A_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.ADD_An(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.ADD_An(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.ADD_An(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.ADC_An(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.ADC_An(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.ADC_An(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.SUB_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.SUB_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.SUB_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.SBC_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.SBC_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.SBC_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.AND_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.AND_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.AND_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.XOR_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.XOR_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.XOR_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.OR_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.OR_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.OR_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.B); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.C); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.D); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.E); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.H); this.updateCycles(1, 4); },
-      () => { this.CP_n(this.registers.L); this.updateCycles(1, 4); },
-      () => { this.CP_n(() => (this.MMU.readByte(this.registers.HL()))); this.updateCycles(1, 8); },
-      () => { this.CP_n(this.registers.A); this.updateCycles(1, 4); },
-      () => { 
-        const isActionTaken = this.RET_cc('NZ');
-        this.updateCycles(1, isActionTaken ? 20 : 8);
-      },
-      () => { this.POP_nn(this.registers.BC); this.updateCycles(1, 12); },
-      () => {
-        const isActionTaken = this.JP_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 16 : 12);
-      },
-      () => {
-        this.JP_nn(this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, 16);
-      },
-      () => {
-        const isActionTaken = this.CALL_cc_nn('NZ', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 24 : 12);
-      },
-      () => { this.PUSH_nn(this.registers.BC); this.updateCycles(1, 16); },
-      () => {
+        },
+      () => { this.CCF(); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.B, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.C, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.D, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.E, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.H, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.B); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.C); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.D); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.E); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.H); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, this.registers.L); }, // 1
+      () => { this.LD_r1_r2(this.registers.L, () => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_n_A(this.registers.L); }, // 1
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.B); }, // 2
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.C); }, // 2
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.D); }, // 2
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.E); }, // 2
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.H); }, // 2
+      () => { this.LD_r1_r2((value) => (this.MMU.writeByte(this.registers.HL(), value)), this.registers.L); }, // 2
+      () => { this.HALT(); }, // 0
+      () => { this.LD_n_A((value) => (this.MMU.writeByte(this.registers.HL(), value))); }, // 2
+      () => { this.LD_A_n(this.registers.B); }, // 1
+      () => { this.LD_A_n(this.registers.C); }, // 1
+      () => { this.LD_A_n(this.registers.D); }, // 1
+      () => { this.LD_A_n(this.registers.E); }, // 1
+      () => { this.LD_A_n(this.registers.H); }, // 1
+      () => { this.LD_A_n(this.registers.L); }, // 1
+      () => { this.LD_A_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.LD_A_n(this.registers.A); }, // 1
+      () => { this.ADD_An(this.registers.B); }, // 1
+      () => { this.ADD_An(this.registers.C); }, // 1
+      () => { this.ADD_An(this.registers.D); }, // 1
+      () => { this.ADD_An(this.registers.E); }, // 1
+      () => { this.ADD_An(this.registers.H); }, // 1
+      () => { this.ADD_An(this.registers.L); }, // 1
+      () => { this.ADD_An(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.ADD_An(this.registers.A); }, // 1
+      () => { this.ADC_An(this.registers.B); }, // 1
+      () => { this.ADC_An(this.registers.C); }, // 1
+      () => { this.ADC_An(this.registers.D); }, // 1
+      () => { this.ADC_An(this.registers.E); }, // 1
+      () => { this.ADC_An(this.registers.H); }, // 1
+      () => { this.ADC_An(this.registers.L); }, // 1
+      () => { this.ADC_An(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.ADC_An(this.registers.A); }, // 1
+      () => { this.SUB_n(this.registers.B); }, // 1
+      () => { this.SUB_n(this.registers.C); }, // 1
+      () => { this.SUB_n(this.registers.D); }, // 1
+      () => { this.SUB_n(this.registers.E); }, // 1
+      () => { this.SUB_n(this.registers.H); }, // 1
+      () => { this.SUB_n(this.registers.L); }, // 1
+      () => { this.SUB_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.SUB_n(this.registers.A); }, // 1
+      () => { this.SBC_n(this.registers.B); }, // 1
+      () => { this.SBC_n(this.registers.C); }, // 1
+      () => { this.SBC_n(this.registers.D); }, // 1
+      () => { this.SBC_n(this.registers.E); }, // 1
+      () => { this.SBC_n(this.registers.H); }, // 1
+      () => { this.SBC_n(this.registers.L); }, // 1
+      () => { this.SBC_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.SBC_n(this.registers.A); }, // 1
+      () => { this.AND_n(this.registers.B); }, // 1
+      () => { this.AND_n(this.registers.C); }, // 1
+      () => { this.AND_n(this.registers.D); }, // 1
+      () => { this.AND_n(this.registers.E); }, // 1
+      () => { this.AND_n(this.registers.H); }, // 1
+      () => { this.AND_n(this.registers.L); }, // 1
+      () => { this.AND_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.AND_n(this.registers.A); }, // 1
+      () => { this.XOR_n(this.registers.B); }, // 1
+      () => { this.XOR_n(this.registers.C); }, // 1
+      () => { this.XOR_n(this.registers.D); }, // 1
+      () => { this.XOR_n(this.registers.E); }, // 1
+      () => { this.XOR_n(this.registers.H); }, // 1
+      () => { this.XOR_n(this.registers.L); }, // 1
+      () => { this.XOR_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.XOR_n(this.registers.A); }, // 1
+      () => { this.OR_n(this.registers.B); }, // 1
+      () => { this.OR_n(this.registers.C); }, // 1
+      () => { this.OR_n(this.registers.D); }, // 1
+      () => { this.OR_n(this.registers.E); }, // 1
+      () => { this.OR_n(this.registers.H); }, // 1
+      () => { this.OR_n(this.registers.L); }, // 1
+      () => { this.OR_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.OR_n(this.registers.A); }, // 1
+      () => { this.CP_n(this.registers.B); }, // 1
+      () => { this.CP_n(this.registers.C); }, // 1
+      () => { this.CP_n(this.registers.D); }, // 1
+      () => { this.CP_n(this.registers.E); }, // 1
+      () => { this.CP_n(this.registers.H); }, // 1
+      () => { this.CP_n(this.registers.L); }, // 1
+      () => { this.CP_n(() => (this.MMU.readByte(this.registers.HL()))); }, // 2
+      () => { this.CP_n(this.registers.A); }, // 1
+      () => { this.RET_cc('NZ'); }, // 5/2
+      () => { this.POP_nn(this.registers.BC); }, // 3
+      () => { this.JP_cc_nn('NZ'); }, // 4/3
+      () => { this.JP_nn(this.MMU.readWord(this.registers.PC())); }, // 4
+      () => { this.CALL_cc_nn('NZ'); }, // 6/3
+      () => { this.PUSH_nn(this.registers.BC); }, // 4
+      () => { // 2
         this.ADD_An(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => { this.RST_n(0x00); this.updateCycles(1, 16); },
-      () => { 
-        const isActionTaken = this.RET_cc('Z');
-        this.updateCycles(1, isActionTaken ? 20 : 8);
-      },
-      () => { this.RET(); this.updateCycles(1, 16); },
-      () => {
-        const isActionTaken = this.JP_cc_nn('Z', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 16 : 12);
-      },
-      () => {
+      () => { this.RST_n(0x00); }, // 4
+      () => { this.RET_cc('Z'); }, // 5/2
+      () => { this.RET(); }, // 4
+      () => { this.JP_cc_nn('Z'); }, // 4/3
+      () => { // 0
         const opcode = this.MMU.readByte(this.registers.PC());
-        this.registers.PC(this.registers.PC() + 1);
         this.cbInstMap[opcode]();
+        this.registers.PC(this.registers.PC() + 1);
         this.registers.PC(this.registers.PC() & 0xffff);
-        this.updateCycles(0, 0);
-      },
-      () => {
-        const isActionTaken = this.CALL_cc_nn('Z', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 24 : 12);
-      },
-      () => {
-        this.CALL_nn(this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, 24);
-      },
-      () => {
+        },
+      () => { this.CALL_cc_nn('Z'); }, // 6/3
+      () => { this.CALL_nn(this.MMU.readWord(this.registers.PC())); }, // 6
+      () => { // 2
         this.ADC_An(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => {
-        this.RST_n(0x08);
-        this.updateCycles(1, 16);
-      },
-      () => {
-        const isActionTaken = this.RET_cc('NC');
-        this.updateCycles(1, isActionTaken ? 20 : 8);
-      },
-      () => { this.POP_nn(this.registers.DE); this.updateCycles(1, 12); },
-      () => {
-        const isActionTaken = this.JP_cc_nn('NC', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 16 : 12);
-      },
+      () => { this.RST_n(0x08); }, // 4
+      () => { this.RET_cc('NC'); }, // 5/2
+      () => { this.POP_nn(this.registers.DE); }, // 3
+      () => { this.JP_cc_nn('NC'); }, // 4/3
       this.NOP,
-      () => {
-        const isActionTaken = this.CALL_cc_nn('NC', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 24 : 12);
-      },
-      () => { this.PUSH_nn(this.registers.DE); this.updateCycles(1, 16); },
-      () => {
+      () => { this.CALL_cc_nn('NC'); }, // 6/3
+      () => { this.PUSH_nn(this.registers.DE); }, // 4
+      () => { // 2
         this.SUB_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => { this.RST_n(0x10); this.updateCycles(1, 16); },
-      () => { 
-        const isActionTaken = this.RET_cc('C');
-        this.updateCycles(1, isActionTaken ? 20 : 8);
-      },
-      () => { this.RETI(); this.updateCycles(1, 16); },
-      () => {
-        const isActionTaken = this.JP_cc_nn('C', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 16 : 12);
-      },
+      () => { this.RST_n(0x10); }, // 4
+      () => { this.RET_cc('C'); }, // 5/2
+      () => { this.RETI(); },  // 4
+      () => { this.JP_cc_nn('C'); }, // 4/3
       this.NOP,
-      () => {
-        const isActionTaken = this.CALL_cc_nn('C', this.MMU.readWord(this.registers.PC()));
-        this.updateCycles(3, isActionTaken ? 24 : 12);
-      },
+      () => { this.CALL_cc_nn('C'); }, // 6/3
       this.NOP,
-      () => {
+      () => { // 2
         this.SBC_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => {
-        this.RST_n(0x18);
-        this.updateCycles(1, 16);
-      },
-      () => {
+      () => { this.RST_n(0x18); },  // 4
+      () => { // 3
         this.LDH_n_A(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(3, 12);
       },
-      () => {
-        this.POP_nn(this.registers.HL);
-        this.updateCycles(1, 12);
-      },
-      () => { this.LD_C_A(); this.updateCycles(2, 8); },
+      () => { this.POP_nn(this.registers.HL); }, // 3
+      () => { this.LD_C_A(); }, // 2
       this.NOP,
       this.NOP,
-      () => { this.PUSH_nn(this.registers.HL); this.updateCycles(1, 16); },
-      () => {
+      () => { this.PUSH_nn(this.registers.HL); }, // 4
+      () => { // 2
         this.AND_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => {
-        this.RST_n(0x20);
-        this.updateCycles(2, 16);
-      },
-      () => {
+      () => { this.RST_n(0x20); }, // 4
+      () => { // 4
         this.ADD_SPn(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 16);
       },
-      () => {
-        this.JP_HL();
-        this.updateCycles(1, 4);
-      },
-      () => {
+      () => { this.JP_HL(); }, // 1
+      () => { // 4
         this.LD_n_A((value) => (this.MMU.writeByte(this.MMU.readWord(this.registers.PC()), value)));
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(4, 16);
       },
       this.NOP,
       this.NOP,
       this.NOP,
-      () => {
+      () => { // 2
         this.XOR_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => {
-        this.RST_n(0x28);
-        this.updateCycles(1, 16);
-      },
-      () => {
+      () => { this.RST_n(0x28); }, // 4
+      () => { // 3
         this.LDH_A_n(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(3, 12);
       },
-      () => {
-        this.POP_nn(this.registers.AF);
-        this.updateCycles(1, 12);
-      },
-      () => { this.LD_A_C(); this.updateCycles(2, 8); },
-      () => { this.DI(); this.updateCycles(1, 4); },
+      () => { this.POP_nn(this.registers.AF); }, // 3
+      () => { this.LD_A_C(); }, // 2
+      () => { this.DI(); }, // 1
       this.NOP,
-      () => { this.PUSH_nn(this.registers.AF); this.updateCycles(1, 16); },
-      () => {
+      () => { this.PUSH_nn(this.registers.AF); }, // 4
+      () => { // 2
         this.OR_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => { this.RST_n(0x30); this.updateCycles(1, 16); },
-      () => {
+      () => { this.RST_n(0x30); }, // 4
+      () => { // 3
         this.LDHL_SP_n(this.MMU.readByte(this.registers.PC()));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 12);
       },
-      () => { this.LD_SP_HL(); this.updateCycles(1, 8); },
-      () => {
-        this.updateCycles(1, 8);
-        this.LD_A_n(() => (this.MMU.readByte(this.MMU.readWord(this.registers.PC()))));
+      () => { this.LD_SP_HL(); }, // 2
+      () => { // 4
+        this.LD_A_n(() => {
+          const addr = this.MMU.readWord(this.registers.PC());
+          
+          return this.MMU.readByte(addr);
+        });
+
         this.registers.PC(this.registers.PC() + 2);
-        this.updateCycles(1, 8);
       },
-      () => { this.EI(); this.updateCycles(1, 4); },
+      () => { this.EI(); }, // 1
       this.NOP,
       this.NOP,
-      () => {
+      () => { // 2
         this.CP_n(() => (this.MMU.readByte(this.registers.PC())));
         this.registers.PC(this.registers.PC() + 1);
-        this.updateCycles(2, 8);
       },
-      () => { this.RST_n(0x38); this.updateCycles(1, 16); },
+      () => { this.RST_n(0x38); }, // 4
     ];
 
     this.cbInstMap = [
-      () => { this.RLC_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.RLC_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.RLC_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.RLC_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.RLC_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.RLC_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.RLC_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.RLC_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.RLC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.RLC_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.RRC_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.RLC_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.RRC_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.RRC_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.RRC_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.RRC_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.RRC_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.RRC_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.RRC_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.RRC_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.RL_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.RRC_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.RL_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.RL_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.RL_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.RL_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.RL_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.RL_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.RL_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.RL_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.RR_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.RL_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.RR_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.RR_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.RR_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.RR_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.RR_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.RR_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.RR_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.RR_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.SLA_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.RR_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.SLA_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.SLA_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.SLA_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.SLA_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.SLA_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.SLA_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.SLA_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.SLA_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.SRA_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.SLA_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.SRA_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.SRA_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.SRA_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.SRA_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.SRA_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.SRA_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.SRA_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.SRA_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.SWAP_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.SRA_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.SWAP_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.SWAP_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.SWAP_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.SWAP_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.SWAP_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.SWAP_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.SWAP_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.SWAP_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.B(), this.registers.B); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.C(), this.registers.C); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.D(), this.registers.D); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.E(), this.registers.E); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.H(), this.registers.H); this.updateCycles(2, 8); },
-      () => { this.SRL_n(this.registers.L(), this.registers.L); this.updateCycles(2, 8); },
-      () => {
-        this.updateCycles(1, 4);
+      () => { this.SWAP_n(this.registers.A(), this.registers.A); }, // 2
+      () => { this.SRL_n(this.registers.B(), this.registers.B); }, // 2
+      () => { this.SRL_n(this.registers.C(), this.registers.C); }, // 2
+      () => { this.SRL_n(this.registers.D(), this.registers.D); }, // 2
+      () => { this.SRL_n(this.registers.E(), this.registers.E); }, // 2
+      () => { this.SRL_n(this.registers.H(), this.registers.H); }, // 2
+      () => { this.SRL_n(this.registers.L(), this.registers.L); }, // 2
+      () => { // 4
         const value = this.MMU.readByte(this.registers.HL());
-        this.updateCycles(1, 4);
         this.SRL_n(value, (value) => (this.MMU.writeByte(this.registers.HL(), value)));
-        this.updateCycles(1, 8);
       },
-      () => { this.SRL_n(this.registers.A(), this.registers.A); this.updateCycles(2, 8); },
+      () => { this.SRL_n(this.registers.A(), this.registers.A); }, // 2
     ];
 
     [this.BIT_b_r].forEach((op) => {
       for (let i=0; i<8; i+=1) {
         this.cbInstMap = this.cbInstMap.concat([
-          () => { op.call(this, i, this.registers.B); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.C); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.D); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.E); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.H); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.L); this.updateCycles(2, 8); },
-          () => {
-            this.updateCycles(1, 4);
+          () => { op.call(this, i, this.registers.B); }, // 2
+          () => { op.call(this, i, this.registers.C); }, // 2
+          () => { op.call(this, i, this.registers.D); }, // 2
+          () => { op.call(this, i, this.registers.E); }, // 2
+          () => { op.call(this, i, this.registers.H); }, // 2
+          () => { op.call(this, i, this.registers.L); }, // 2
+          () => { // 3
             const byte = this.MMU.readByte(this.registers.HL());
-            op.call(this, i, () => (this.MMU.readByte(this.registers.HL())));
-            this.updateCycles(2, 8);
+
+            op.call(this, i, () => (byte));
           },
-          () => { op.call(this, i, this.registers.A); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.A); }, // 2
         ]);
       }
     });
     [this.RES_b_r, this.SET_b_r].forEach((op) => {
       for (let i=0; i<8; i+=1) {
         this.cbInstMap = this.cbInstMap.concat([
-          () => { op.call(this, i, this.registers.B); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.C); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.D); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.E); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.H); this.updateCycles(2, 8); },
-          () => { op.call(this, i, this.registers.L); this.updateCycles(2, 8); },
-          () => {
-            this.updateCycles(1, 4);
+          () => { op.call(this, i, this.registers.B); }, // 2
+          () => { op.call(this, i, this.registers.C); }, // 2
+          () => { op.call(this, i, this.registers.D); }, // 2
+          () => { op.call(this, i, this.registers.E); }, // 2
+          () => { op.call(this, i, this.registers.H); }, // 2
+          () => { op.call(this, i, this.registers.L); }, // 2
+          () => { // 4
             const byte = this.MMU.readByte(this.registers.HL());
-            this.updateCycles(1, 4);
+            
             op.call(this, i, (value, index) => {
               if (value) {
                 this.MMU.writeByte(this.registers.HL(), byte | (1 << index));
@@ -644,9 +515,8 @@ export default class CPU {
                 this.MMU.writeByte(this.registers.HL(), byte & ~(1 << index));
               }
             });
-            this.updateCycles(1, 8);
           },
-          () => { op.call(this, i, this.registers.A); this.updateCycles(2, 8); },
+          () => { op.call(this, i, this.registers.A); }, // 2
         ]);
       }
     });
@@ -737,104 +607,35 @@ export default class CPU {
     this.IME = false;
     this.isHalted = false;
     this.isStopped = false;
-    this.justIMESetup = false;
   }
   step() {
-    /*
-    const pcList = document.getElementById('lastTenPC');
-    const childNodes = pcList.childNodes;
-    while (childNodes.length >= 10) {
-      pcList.removeChild(childNodes[0]);
-    }
-    const pc = document.createElement('li');
-    pc.innerHTML = '0x' + this.registers.PC().toString(16);
-
-    pcList.appendChild(pc);
-    */
-
+    this.interrupt.isOccured();
     const opcode = this.MMU.readByte(this.registers.PC());
-    if (this.logUpdateCycles) {
-      console.log('opcode: 0x' + this.MMU.readByte(this.registers.PC()).toString(16));
-    }
-    if (this.isHalted) {
-      this.clock.updateCycles(1, 4);
-    } else {
+    if (!this.isHalted) {
+      if (opcode == 0xfa && this.logOn) {
+        // console.log('IME: ' + this.IME + ', timer: ' + (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) + ', runningTimer: ' + this.clock.control.runningTimer + ', counter: ' + this.clock.counter);
+        console.log('before: ' + this.clock.counterCycles);
+      }
+
+      if (opcode == 0xfa && this.logOn) {
+        console.log('0x' + this.registers.PC().toString(16) + ', 0x' + opcode.toString(16));
+      }
+      // if (this.registers.PC() == 0xc2c1) {
+      if (opcode == 0xfa) {
+        // console.log(this.registers.PC().toString(16));
+        // this.logOn = true;
+      }
+
       this.registers.PC(this.registers.PC() + 1);
+      this.registers.PC(this.registers.PC() & 0xffff);
+    
       this.instMap[opcode]();
-    }
-    this.registers.PC(this.registers.PC() & 0xffff);
 
-    this.checkInterrupt();
-
-    this.GPU.step();
-
-    this.checkInterrupt();
-
-    if (this.logUpdateCycles) {
-      console.log(this.GPU.mode + ' - GPU cycles: ' + this.GPU.cycles);
-    }
-
-    if (this.justIMESetup) {
-      this.justIMESetup = false;
-    }
-  }
-  checkInterrupt() {
-    if (this.IME && !this.justIMESetup) {
-      if (this.interrupt.interruptEnabled.VBlank && this.interrupt.interruptFlag.VBlank) {
-        this.isHalted = false;
-        this.IME = false;
-        this.interrupt.interruptFlag.VBlank = false;
-        this.RST_n(0x40);
-        this.updateCycles(5, 20);
-        this.GPU.step();
-      } else if (this.interrupt.interruptEnabled.LCDStatus && this.interrupt.interruptFlag.LCDStatus) {
-        this.isHalted = false;
-        this.IME = false;
-        this.interrupt.interruptFlag.LCDStatus = false;
-        this.RST_n(0x48);
-        this.updateCycles(5, 20);
-        this.GPU.step();
-      } else if (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) {
-        this.isHalted = false;
-        this.IME = false;
-        this.interrupt.interruptFlag.timer = false;
-        this.RST_n(0x50);
-        this.updateCycles(5, 20);
-        this.GPU.step();
-      } else if (this.interrupt.interruptEnabled.serial && this.interrupt.interruptFlag.serial) {
-        this.isHalted = false;
-        this.IME = false;
-        this.interrupt.interruptFlag.serial = false;
-        this.RST_n(0x58);
-        this.updateCycles(5, 20);
-        this.GPU.step();
-      } else if (this.interrupt.interruptEnabled.input && this.interrupt.interruptFlag.input) {
-        this.isHalted = false;
-        this.IME = false;
-        this.interrupt.interruptFlag.input = false;
-        this.RST_n(0x60);
-        this.updateCycles(5, 20);
-        this.GPU.step();
-      }
-    } else {
-      if (this.interrupt.interruptFlag.VBlank) {
-        this.isHalted = false;
-      } else if (this.interrupt.interruptFlag.LCDStatus) {
-        this.isHalted = false;
-      } else if (this.interrupt.interruptFlag.timer) {
-        this.isHalted = false;
-      } else if (this.interrupt.interruptFlag.serial) {
-        this.isHalted = false;
-      } else if (this.interrupt.interruptFlag.input) {
-        this.isHalted = false;
+      if (opcode == 0xfa && this.logOn) {
+        // console.log('IME: ' + this.IME + ', timer: ' + (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) + ', runningTimer: ' + this.clock.control.runningTimer + ', counter: ' + this.clock.counter);
+        console.log('after: ' + this.clock.counterCycles);
       }
     }
-  }
-  updateCycles(m, c) {
-    if (this.logUpdateCycles) {
-      console.log('updateCycles: ' + c);
-    }
-    this.clock.updateCycles(c);
   }
   signed(n) {
     if (n & 0x80) {
@@ -874,15 +675,18 @@ export default class CPU {
   }
   LD_SP_HL() {
     this.registers.SP(this.registers.HL());
+    this.clock.updateCycles(4);
   }
   LDHL_SP_n(n) {
     this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(n)), this.isCarry(this.registers.SP(), this.signed(n)));
     this.registers.HL(this.registers.SP() + this.signed(n));
+    this.clock.updateCycles(4);
   }
   LD_nn_SP(nn) {
     this.MMU.writeWord(nn & 0xffff, this.registers.SP());
   }
   PUSH_nn(nn) {
+    this.clock.updateCycles(4);
     this.MMU.writeWord(this.registers.SP() - 2, nn() & 0xffff);
     this.registers.SP(this.registers.SP() - 2);
   }
@@ -942,37 +746,45 @@ export default class CPU {
   }
   // 8-bits ALU
   ADD_An(n) {
-    this.setFlag(((this.registers.A() + n()) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n()), this.isCarry(this.registers.A(), n()));
-    this.registers.A(this.registers.A() + n());
+    const byte = n();
+    this.setFlag(((this.registers.A() + byte) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), byte), this.isCarry(this.registers.A(), byte));
+    this.registers.A(this.registers.A() + byte);
   }
   ADC_An(n) {
+    const byte = n();
     const carryFlag = this.registers.F.C() ? 1 : 0;
-    this.setFlag(((this.registers.A() + n() + carryFlag) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), n(), carryFlag), this.isCarry(this.registers.A(), n(), carryFlag));
-    this.registers.A(this.registers.A() + n() + carryFlag);
+    this.setFlag(((this.registers.A() + byte + carryFlag) & 0xff) === 0, false, this.isHalfCarry(this.registers.A(), byte, carryFlag), this.isCarry(this.registers.A(), byte, carryFlag));
+    this.registers.A(this.registers.A() + byte + carryFlag);
   }
   SUB_n(n) {
-    this.setFlag(((this.registers.A() - n()) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
-    this.registers.A(this.registers.A() - n());
+    const byte = n();
+    this.setFlag(((this.registers.A() - byte) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), byte), this.isBorrow(this.registers.A(), byte));
+    this.registers.A(this.registers.A() - byte);
   }
   SBC_n(n) {
+    const byte = n();
     const carryFlag = this.registers.F.C() ? 1 : 0;
-    this.setFlag(((this.registers.A() - n() - carryFlag) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), n(), carryFlag), this.isBorrow(this.registers.A(), n(), carryFlag));
-    this.registers.A(this.registers.A() - n() - carryFlag);
+    this.setFlag(((this.registers.A() - byte - carryFlag) & 0xff) === 0, true, this.isHalfBorrow(this.registers.A(), byte, carryFlag), this.isBorrow(this.registers.A(), byte, carryFlag));
+    this.registers.A(this.registers.A() - byte - carryFlag);
   }
   AND_n(n) {
-    this.setFlag((this.registers.A() & n()) === 0, false, true, false);
-    this.registers.A(this.registers.A() & n());
+    const byte = n();
+    this.setFlag((this.registers.A() & byte) === 0, false, true, false);
+    this.registers.A(this.registers.A() & byte);
   }
   OR_n(n) {
-    this.setFlag((this.registers.A() | n()) === 0, false, false, false);
-    this.registers.A(this.registers.A() | n());
+    const byte = n();
+    this.setFlag((this.registers.A() | byte) === 0, false, false, false);
+    this.registers.A(this.registers.A() | byte);
   }
   XOR_n(n) {
-    this.setFlag((this.registers.A() ^ n()) === 0, false, false, false);
-    this.registers.A(this.registers.A() ^ n());
+    const byte = n();
+    this.setFlag((this.registers.A() ^ byte) === 0, false, false, false);
+    this.registers.A(this.registers.A() ^ byte);
   }
   CP_n(n) {
-    this.setFlag(this.registers.A() === n(), true, this.isHalfBorrow(this.registers.A(), n()), this.isBorrow(this.registers.A(), n()));
+    const byte = n();
+    this.setFlag(this.registers.A() === byte, true, this.isHalfBorrow(this.registers.A(), byte), this.isBorrow(this.registers.A(), byte));
   }
   INC_n(s, d) {
     this.setFlag(((s + 1) & 0xff) === 0, false, this.isHalfCarry(s, 1), this.registers.F.C());
@@ -984,18 +796,24 @@ export default class CPU {
   }
   // 16-bits ALU
   ADD_HLn(n) {
-    this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.HL(), n()), this.is16BitsCarry(this.registers.HL(), n()));
-    this.registers.HL(this.registers.HL() + n());
+    const byte = n();
+    this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.HL(), byte), this.is16BitsCarry(this.registers.HL(), byte));
+    this.registers.HL(this.registers.HL() + byte);
+    this.clock.updateCycles(4);
   }
   ADD_SPn(n) {
-    this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(n())), this.isCarry(this.registers.SP(), this.signed(n())));
-    this.registers.SP(this.registers.SP() + this.signed(n()));
+    const byte = n();
+    this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(byte)), this.isCarry(this.registers.SP(), this.signed(byte)));
+    this.registers.SP(this.registers.SP() + this.signed(byte));
+    this.clock.updateCycles(8);
   }
   INC_nn(nn) {
     nn(nn() + 1);
+    this.clock.updateCycles(4);
   }
   DEC_nn(nn) {
     nn(nn() - 1);
+    this.clock.updateCycles(4);
   }
   // Miscellaneous
   SWAP_n(s, d) {
@@ -1052,7 +870,6 @@ export default class CPU {
   }
   EI() {
     this.IME = true;
-    this.justIMESetup = true;
   }
   // Rotates & Shifts
   RLCA() {
@@ -1123,12 +940,14 @@ export default class CPU {
   // Jumps
   JP_nn(nn) {
     this.registers.PC(nn);
+    this.clock.updateCycles(4);
   }
-  JP_cc_nn(cc, nn) {
+  JP_cc_nn(cc) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1136,6 +955,7 @@ export default class CPU {
       case 'Z':
         if (this.registers.F.Z() === 0) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1143,6 +963,7 @@ export default class CPU {
       case 'NC':
         if (this.registers.F.C()) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1150,13 +971,15 @@ export default class CPU {
       case 'C':
         if (this.registers.F.C() === 0) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
         break;
     }
 
-    this.registers.PC(nn);
+    this.registers.PC(this.MMU.readWord(this.registers.PC()));
+    this.clock.updateCycles(4);
 
     return true;
   }
@@ -1165,47 +988,61 @@ export default class CPU {
   }
   JR_n(n) {
     this.registers.PC(this.registers.PC() + this.signed(n));
+  
+    this.clock.updateCycles(4);
   }
-  JR_cc_n(cc, n) {
+  JR_cc_n(cc) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
+          this.clock.updateCycles(4);
+
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
+          this.clock.updateCycles(4);
+
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
+          this.clock.updateCycles(4);
+
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
+          this.clock.updateCycles(4);
+
           return false;
         }
         break;
     }
 
-    this.registers.PC(this.registers.PC() + this.signed(n));
+    this.registers.PC(this.registers.PC() + this.signed(this.MMU.readByte(this.registers.PC())));
+    this.clock.updateCycles(4);
 
     return true;
   }
   // Calls
   CALL_nn(nn) {
+    this.clock.updateCycles(4);
+
     this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC() + 2);
     this.registers.SP(this.registers.SP() - 2);
 
     this.registers.PC(nn);
   }
-  CALL_cc_nn(cc, nn) {
+  CALL_cc_nn(cc) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1213,6 +1050,7 @@ export default class CPU {
       case 'Z':
         if (this.registers.F.Z() === 0) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1220,6 +1058,7 @@ export default class CPU {
       case 'NC':
         if (this.registers.F.C()) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
@@ -1227,18 +1066,21 @@ export default class CPU {
       case 'C':
         if (this.registers.F.C() === 0) {
           this.registers.PC(this.registers.PC() + 2);
+          this.clock.updateCycles(8);
 
           return false;
         }
         break;
     }
 
-    this.CALL_nn(nn);
+    this.CALL_nn(this.MMU.readWord(this.registers.PC()));
 
     return true;
   }
   // Restarts
   RST_n(n) {
+    this.clock.updateCycles(4);
+
     this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC());
     this.registers.SP(this.registers.SP() - 2);
 
@@ -1250,8 +1092,11 @@ export default class CPU {
 
     this.registers.PC(highByte << 8 | lowByte & 0xff);
     this.registers.SP(this.registers.SP() + 2);
+    this.clock.updateCycles(4);
   }
   RET_cc(cc) {
+    this.clock.updateCycles(4);
+
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {

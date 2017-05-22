@@ -1,7 +1,5 @@
 export default class Clock {
-  constructor(interrupt) {
-    this.interrupt = interrupt;
-
+  constructor() {
     this.reset();
   }
   reset() {
@@ -47,11 +45,13 @@ export default class Clock {
         this.counter += Math.floor(this.counterCycles / cyclesPerCounter);
         if (this.counter > 0xff) {
           this.interrupt.interruptFlag.timer = true;
-          this.counter = this.modulo + (this.counter - 0x100);
+          this.counter = this.modulo;
         }
         this.counterCycles %= cyclesPerCounter;
       }
     }
+
+    this.GPU.updateCycles(lastInstCycles);
   }
   updateDivider(value) {
     this.divider = 0;

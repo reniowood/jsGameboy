@@ -9,10 +9,24 @@ export default class Gameboy {
   constructor() {
     this.input = new Input();
     this.interrupt = new Interrupt();
-    this.clock = new Clock(this.interrupt);
-    this.GPU = new GPU(this.clock, this.interrupt);
-    this.MMU = new MMU(this.clock, this.interrupt, this.GPU, this.input);
-    this.CPU = new CPU(this.clock, this.interrupt, this.MMU, this.GPU);
+    this.GPU = new GPU();
+    this.clock = new Clock();
+    this.MMU = new MMU();
+    this.CPU = new CPU();
+
+    this.interrupt.CPU = this.CPU;
+    this.interrupt.clock = this.clock;
+    this.GPU.interrupt = this.interrupt;
+    this.clock.CPU = this.CPU;
+    this.clock.GPU = this.GPU;
+    this.clock.interrupt = this.interrupt;
+    this.MMU.clock = this.clock;
+    this.MMU.interrupt = this.interrupt;
+    this.MMU.GPU = this.GPU;
+    this.MMU.input = this.input;
+    this.CPU.interrupt = this.interrupt;
+    this.CPU.MMU = this.MMU;
+    this.CPU.clock = this.clock;
 
     this.stop = undefined;
   }

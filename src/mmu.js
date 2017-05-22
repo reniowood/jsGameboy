@@ -1,10 +1,5 @@
 export default class MMU {
-  constructor(clock, interrupt, GPU, input) {
-    this.clock = clock;
-    this.interrupt = interrupt;
-    this.GPU = GPU;
-    this.input = input;
-
+  constructor() {
     this.ROM = []; // 0x0000 - 0x3fff (bank 0) / 0x4000 - 0x7fff (other banks)
     this.reset();
   }
@@ -106,6 +101,11 @@ export default class MMU {
     }
   }
   readByte(addr) {
+    const byte = this._readByte(addr);
+    this.clock.updateCycles(4);
+    return byte;
+  }
+  _readByte(addr) {
     switch (addr & 0xf000) {
       case 0x0000:
       case 0x1000:
@@ -193,6 +193,11 @@ export default class MMU {
     }
   }
   writeByte(addr, value) {
+    const byte = this._writeByte(addr, value);
+    this.clock.updateCycles(4);
+    return byte;
+  }
+  _writeByte(addr, value) {
     switch (addr & 0xf000) {
       case 0x0000:
       case 0x1000:
@@ -218,6 +223,8 @@ export default class MMU {
           this.currentROMBank &= 0x0100;
           this.currentROMBank |= value;
         }
+
+        break;
       case 0x3000:
         if (this.MBC.startsWith("ROM_MBC1")) {
           const lower5Bits = value & 0x1f;
@@ -276,6 +283,8 @@ export default class MMU {
         if (this.MBC.startsWith("ROM_MBC2")) {
           return this.cartridgeRAM[addr & 0x1fff] = value & 0x0f;
         }
+
+        break;
       case 0xb000:
         if (!this.MBC.startsWith("ROM_MBC2")) {
           return this.cartridgeRAM[this.currentRAMBank * 0x4000 + (addr & 0x1fff)] = value;
@@ -324,7 +333,7 @@ export default class MMU {
             if (addr === 0xff00) {
               return this.input.writeByte(value);
             } else if (addr === 0xff04) {
-              return this.clock.updateDivider(value);
+              return this.clock.updateDivider(0);
             } else if (addr === 0xff05) {
               return this.clock.updateCounter(value);
             } else if (addr === 0xff06) {
@@ -356,10 +365,17 @@ export default class MMU {
     }
   }
   readWord(addr) {
-    return this.readByte(addr + 1) << 8 | this.readByte(addr);
+    const highByte = this._readByte(addr + 1);
+    this.clock.updateCycles(4);
+    const lowByte = this._readByte(addr);
+    this.clock.updateCycles(4);
+    
+    return highByte << 8 | lowByte;
   }
   writeWord(addr, value) {
-    this.writeByte(addr, value & 0xff);
-    this.writeByte(addr + 1, (value >> 8) & 0xff);
+    this._writeByte(addr, value & 0xff);
+    this.clock.updateCycles(4);
+    this._writeByte(addr + 1, (value >> 8) & 0xff);
+    this.clock.updateCycles(4);
   }
 }

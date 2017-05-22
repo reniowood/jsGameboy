@@ -46,6 +46,73 @@ export default class Interrupt {
       }
     };
   }
+  isOccured() {
+    if (this.CPU.IME) {
+      if (this.interruptEnabled.VBlank && this.interruptFlag.VBlank) {
+        this.CPU.isHalted = false;
+        this.CPU.IME = false;
+        this.interruptFlag.VBlank = false;
+        this.clock.updateCycles(8);
+        this.CPU.RST_n(0x40);
+
+        return true;
+      }
+
+      if (this.interruptEnabled.LCDStatus && this.interruptFlag.LCDStatus) {
+        this.CPU.isHalted = false;
+        this.CPU.IME = false;
+        this.interruptFlag.LCDStatus = false;
+        this.clock.updateCycles(8);
+        this.CPU.RST_n(0x48);
+
+        return true;
+      }
+
+      if (this.interruptEnabled.timer && this.interruptFlag.timer) {
+        this.CPU.isHalted = false;
+        this.CPU.IME = false;
+        this.interruptFlag.timer = false;
+        this.clock.updateCycles(8);
+        this.CPU.RST_n(0x50);
+
+        return true;
+      }
+
+      if (this.interruptEnabled.serial && this.interruptFlag.serial) {
+        this.CPU.isHalted = false;
+        this.CPU.IME = false;
+        this.interruptFlag.serial = false;
+        this.clock.updateCycles(8);
+        this.CPU.RST_n(0x58);
+
+        return true;
+      }
+
+      if (this.interruptEnabled.input && this.interruptFlag.input) {
+        this.CPU.isHalted = false;
+        this.CPU.IME = false;
+        this.interruptFlag.input = false;
+        this.clock.updateCycles(8);
+        this.CPU.RST_n(0x60);
+
+        return true;
+      }
+    } else {
+      if (this.interruptFlag.VBlank) {
+        this.CPU.isHalted = false;
+      } else if (this.interruptFlag.LCDStatus) {
+        this.CPU.isHalted = false;
+      } else if (this.interruptFlag.timer) {
+        this.CPU.isHalted = false;
+      } else if (this.interruptFlag.serial) {
+        this.CPU.isHalted = false;
+      } else if (this.interruptFlag.input) {
+        this.CPU.isHalted = false;
+      }
+    }
+
+    return false;
+  }
   getIE() {
     return this.interruptEnabled.getByte();
   }

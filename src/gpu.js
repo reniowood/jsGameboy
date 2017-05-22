@@ -1,8 +1,5 @@
 export default class GPU {
-  constructor(clock, interrupt) {
-    this.clock = clock;
-    this.interrupt = interrupt;
-
+  constructor() {
     this.reset();
   }
   reset() {
@@ -117,8 +114,8 @@ export default class GPU {
 
     return n;
   }
-  step() {
-    this.cycles += this.clock.lastInstCycles;
+  updateCycles(lastInstCycles) {
+    this.cycles += lastInstCycles;
 
     switch (this.mode) {
       case this.MODE.HBLANK:
