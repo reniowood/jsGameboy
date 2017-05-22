@@ -55,6 +55,7 @@ export default class Clock {
   }
   updateDivider(value) {
     this.divider = 0;
+    this.dividerCycles = 0;
   }
   updateCounter(value) {
     this.counter = value;
