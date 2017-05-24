@@ -110,9 +110,10 @@ export default class MMU {
   }
   readByte(addr) {
     if (!this.isAccessible && addr < 0xff80) {
+      this.clock.step();
       return 0xff;
     }
-    
+
     const byte = this._readByte(addr);
     this.clock.step();
     return byte;
@@ -206,6 +207,7 @@ export default class MMU {
   }
   writeByte(addr, value) {
     if (!this.isAccessible && addr < 0xff80 && addr !== 0xff46) {
+      this.clock.step();
       return 0xff;
     }
 
@@ -375,25 +377,13 @@ export default class MMU {
     }
   }
   readWord(addr) {
-    if (!this.isAccessible) {
-      return 0xffff;
-    }
-
-    const lowByte = this._readByte(addr);
-    this.clock.step();
-    const highByte = this._readByte(addr + 1);
-    this.clock.step();
+    const lowByte = this.readByte(addr);
+    const highByte = this.readByte(addr + 1);
     
     return highByte << 8 | lowByte;
   }
   writeWord(addr, value) {
-    if (!this.isAccessible) {
-      return 0xffff;
-    }
-
-    this._writeByte(addr, value & 0xff);
-    this.clock.step();
-    this._writeByte(addr + 1, (value >> 8) & 0xff);
-    this.clock.step();
+    this.writeByte(addr + 1, (value >> 8) & 0xff);
+    this.writeByte(addr, value & 0xff);
   }
 }

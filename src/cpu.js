@@ -608,6 +608,8 @@ export default class CPU {
     this.justEIExecuted = false;
     this.isHalted = false;
     this.isStopped = false;
+
+    this.logOn = false;
   }
   step() {
     this.interrupt.isOccured();
@@ -625,8 +627,8 @@ export default class CPU {
         console.log('0x' + this.registers.PC().toString(16) + ', 0x' + opcode.toString(16));
         console.log(this.GPU.OAMDMAList);
       }
-      // if (this.registers.PC() == 0xff80) {
-      if (opcode == 0xe0) {
+      if (this.registers.PC() == 0xffbc) {
+      // if (opcode == 0xd5) {
         // console.log(this.registers.PC().toString(16));
         // console.log(this.MMU.readByte(this.registers.PC() + 1).toString(16));
         // console.log(this.MMU.readByte(this.registers.PC() + 2).toString(16));
