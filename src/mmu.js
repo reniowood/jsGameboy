@@ -379,9 +379,9 @@ export default class MMU {
       return 0xffff;
     }
 
-    const highByte = this._readByte(addr + 1);
-    this.clock.step();
     const lowByte = this._readByte(addr);
+    this.clock.step();
+    const highByte = this._readByte(addr + 1);
     this.clock.step();
     
     return highByte << 8 | lowByte;
