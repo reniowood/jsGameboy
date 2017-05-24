@@ -108,8 +108,34 @@ export default class MMU {
   setInaccessible() {
     this.isAccessible = false;
   }
+  isInSameBusWithOAMDMA(addr) {
+    const activeOAMDMA = this.GPU.getActiveOAMDMA();
+    if (activeOAMDMA == undefined) {
+      return false;
+    }
+
+    const highAddr = addr >> 8;
+    const highAddrOfOAMDMA = activeOAMDMA.highAddr;
+    if (((highAddrOfOAMDMA >= 0x00 && highAddrOfOAMDMA < 0x80) || (highAddrOfOAMDMA >= 0xa0 && highAddrOfOAMDMA < 0xfe)) &&
+        ((highAddr >= 0x00 && highAddr < 0x80) || (highAddr >= 0xa0 && highAddr < 0xfe))) {
+      // console.log('true: ', highAddrOfOAMDMA.toString(16), highAddr.toString(16));
+      return true;
+    }
+
+    if (highAddrOfOAMDMA >= 0x80 && highAddrOfOAMDMA < 0xa0 && highAddr >= 0x80 && highAddr < 0xa0) {
+      // console.log('true: ', highAddrOfOAMDMA.toString(16), highAddr.toString(16));
+      return true;
+    }
+
+    if (highAddr === 0xfe) {
+      return true;
+    }
+
+    // console.log('false: ', highAddrOfOAMDMA.toString(16), highAddr.toString(16));
+    return false;
+  }
   readByte(addr) {
-    if (!this.isAccessible && addr < 0xff80) {
+    if (!this.isAccessible && addr < 0xff80 && this.isInSameBusWithOAMDMA(addr)) {
       this.clock.step();
       return 0xff;
     }
