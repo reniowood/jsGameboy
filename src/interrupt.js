@@ -35,7 +35,8 @@ export default class Interrupt {
         (this.interruptFlag.LCDStatus ? 0x02 : 0x00) |
         (this.interruptFlag.timer ? 0x04 : 0x00) |
         (this.interruptFlag.serial ? 0x08 : 0x00) |
-        (this.interruptFlag.input ? 0x10 : 0x00)
+        (this.interruptFlag.input ? 0x10 : 0x00) |
+        0xe0
       ),
       setByte: (value) => {
         this.interruptFlag.VBlank = value & 0x01 ? true : false;
