@@ -117,74 +117,56 @@ export default class GPU {
     return n;
   }
   step() {
-    this.cycles += 4;
+    this.cycles += 1;
 
     switch (this.mode) {
       case this.MODE.HBLANK:
-        if (this.cycles >= 204) {
-          this.cycles -= 204;
+        if (this.cycles === 50) {
+          this.cycles -= 50;
 
           this.line += 1;
           if (this.line === 144) {
-            this.mode = this.MODE.VBLANK;
-
-            if (this.VBlankInterrupt || this.OAMInterrupt) {
-              this.interrupt.interruptFlag.LCDStatus = true;
-            }
-            this.interrupt.interruptFlag.VBlank = true;
-
-            this.canvas.putImageData(this.screen, 0, 0);
+            this.changeMode(this.MODE.VBLANK);
           } else {
-            this.mode = this.MODE.SCANLINE_OAM;
-
-            if (this.OAMInterrupt) {
-              this.interrupt.interruptFlag.LCDStatus = true;
-            }
+            this.changeMode(this.MODE.SCANLINE_OAM);
           }
+
+          this.checkLineCompareInterrupt();
         }
 
         break;
       case this.MODE.SCANLINE_OAM:
-        if (this.cycles >= 80) {
-          this.cycles -= 80;
+        if (this.cycles === 21) {
+          this.cycles -= 21;
 
-          this.mode = this.MODE.SCANLINE_VRAM;
+          this.changeMode(this.MODE.SCANLINE_VRAM);
         }
 
         break;
       case this.MODE.SCANLINE_VRAM:
-        if (this.cycles >= 172) {
-          this.cycles -= 172;
+        if (this.cycles === 43) {
+          this.cycles -= 43;
 
-          this.mode = this.MODE.HBLANK;
-          
+          this.changeMode(this.MODE.HBLANK);
+        } else if (this.cycles === 42) {
           if (this.HBlankInterrupt) {
             this.interrupt.interruptFlag.LCDStatus = true;
           }
-
-          this.render();
         }
 
         break;
       case this.MODE.VBLANK:
-        if (this.cycles >= 456) {
-          this.cycles -= 456;
-
-          this.coincidenceFlag = this.line === this.lineCompare;
-          if (this.lineCompareInterrupt) {
-            this.interrupt.interruptFlag.LCDStatus = true;
-          }
+        if (this.cycles === 114) {
+          this.cycles -= 114;
 
           this.line += 1;
           if (this.line === 154) {
-            this.mode = this.MODE.SCANLINE_OAM;
-
-            if (this.OAMInterrupt) {
-              this.interrupt.interruptFlag.LCDStatus = true;
-            }
-
             this.line = 0;
+
+            this.changeMode(this.MODE.SCANLINE_OAM);
           }
+
+          this.checkLineCompareInterrupt();
         }
 
         break;
@@ -192,6 +174,43 @@ export default class GPU {
 
     if (this.OAMDMAList.length > 0) {
       this.stepOAMDMA();
+    }
+  }
+  checkLineCompareInterrupt() {
+    this.coincidenceFlag = this.line === this.lineCompare;
+    if (this.coincidenceFlag) {
+      if (this.lineCompareInterrupt) {
+        this.interrupt.interruptFlag.LCDStatus = true;
+      }
+    }
+  }
+  changeMode(mode) {
+    this.mode = mode;
+
+    switch (this.mode) {
+      case this.MODE.HBLANK:
+        this.render();
+
+        break;
+      case this.MODE.SCANLINE_OAM:
+        if (this.OAMInterrupt) {
+          this.interrupt.interruptFlag.LCDStatus = true;
+        }
+
+        break;
+      case this.MODE.SCANLINE_VRAM:
+        break;
+      case this.MODE.VBLANK:
+        if (this.VBlankInterrupt || this.OAMInterrupt) {
+          this.interrupt.interruptFlag.LCDStatus = true;
+        }
+        this.interrupt.interruptFlag.VBlank = true;
+
+        this.canvas.putImageData(this.screen, 0, 0);
+
+        break;
+      default:
+        break;
     }
   }
   startOAMDMA(value) {
@@ -227,6 +246,15 @@ export default class GPU {
       this.OAM[OAMDMA.currAddr] = val;
       this.updateSprite(0xfe00 + OAMDMA.currAddr, val);
       OAMDMA.currAddr += 1;
+    }
+  }
+  getActiveOAMDMA() {
+    for (let i=this.OAMDMAList.length-1; i>=0; i-=1) {
+      let OAMDMA = this.OAMDMAList[i];
+
+      if (OAMDMA.wait == 0) {
+        return OAMDMA;
+      }
     }
   }
   updateSprite(addr, value) {
