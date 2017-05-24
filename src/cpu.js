@@ -627,8 +627,8 @@ export default class CPU {
         console.log('0x' + this.registers.PC().toString(16) + ', 0x' + opcode.toString(16));
         console.log(this.GPU.OAMDMAList);
       }
-      if (this.registers.PC() == 0xffbc) {
-      // if (opcode == 0xd5) {
+      // if (this.registers.PC() == 0xffbc) {
+      if (opcode == 0xfb) {
         // console.log(this.registers.PC().toString(16));
         // console.log(this.MMU.readByte(this.registers.PC() + 1).toString(16));
         // console.log(this.MMU.readByte(this.registers.PC() + 2).toString(16));
@@ -1107,11 +1107,11 @@ export default class CPU {
     this.registers.PC(n & 0xff);
   }
   RET() {
-    const lowByte = this.MMU.readByte(this.registers.SP());
-    const highByte = this.MMU.readByte(this.registers.SP() + 1);
+    const word = this.MMU.readWord(this.registers.SP());
 
-    this.registers.PC(highByte << 8 | lowByte & 0xff);
+    this.registers.PC(word);
     this.registers.SP(this.registers.SP() + 2);
+    
     this.clock.step();
   }
   RET_cc(cc) {
@@ -1146,7 +1146,9 @@ export default class CPU {
   }
   RETI() {
     this.RET();
-    this.EI();
+    
+    this.IME = true;
+    this.justEIExecuted = false;
   }
   // Returns
 }
