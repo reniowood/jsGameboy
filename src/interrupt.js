@@ -47,12 +47,13 @@ export default class Interrupt {
     };
   }
   isOccured() {
-    if (this.CPU.IME) {
+    if (this.CPU.IME && !this.CPU.justEIExecuted) {
       if (this.interruptEnabled.VBlank && this.interruptFlag.VBlank) {
         this.CPU.isHalted = false;
         this.CPU.IME = false;
         this.interruptFlag.VBlank = false;
-        this.clock.updateCycles(8);
+        this.clock.step();
+        this.clock.step();
         this.CPU.RST_n(0x40);
 
         return true;
@@ -62,7 +63,8 @@ export default class Interrupt {
         this.CPU.isHalted = false;
         this.CPU.IME = false;
         this.interruptFlag.LCDStatus = false;
-        this.clock.updateCycles(8);
+        this.clock.step();
+        this.clock.step();
         this.CPU.RST_n(0x48);
 
         return true;
@@ -72,7 +74,8 @@ export default class Interrupt {
         this.CPU.isHalted = false;
         this.CPU.IME = false;
         this.interruptFlag.timer = false;
-        this.clock.updateCycles(8);
+        this.clock.step();
+        this.clock.step();
         this.CPU.RST_n(0x50);
 
         return true;
@@ -82,7 +85,8 @@ export default class Interrupt {
         this.CPU.isHalted = false;
         this.CPU.IME = false;
         this.interruptFlag.serial = false;
-        this.clock.updateCycles(8);
+        this.clock.step();
+        this.clock.step();
         this.CPU.RST_n(0x58);
 
         return true;
@@ -92,7 +96,8 @@ export default class Interrupt {
         this.CPU.isHalted = false;
         this.CPU.IME = false;
         this.interruptFlag.input = false;
-        this.clock.updateCycles(8);
+        this.clock.step();
+        this.clock.step();
         this.CPU.RST_n(0x60);
 
         return true;

@@ -605,24 +605,31 @@ export default class CPU {
     };
 
     this.IME = false;
+    this.justEIExecuted = false;
     this.isHalted = false;
     this.isStopped = false;
   }
   step() {
     this.interrupt.isOccured();
+    this.justEIExecuted = false;
+
     const opcode = this.MMU.readByte(this.registers.PC());
     if (!this.isHalted) {
-      if (opcode == 0xfa && this.logOn) {
+      if (this.logOn) {
+        // console.log('IME: ' + this.IME + ', divider: ' + this.clock.divider + ', dividerCycles: ' + this.clock.dividerCycles);
         // console.log('IME: ' + this.IME + ', timer: ' + (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) + ', runningTimer: ' + this.clock.control.runningTimer + ', counter: ' + this.clock.counter);
-        console.log('before: ' + this.clock.counterCycles);
+        // console.log('before: ' + this.clock.counterCycles);
       }
 
-      if (opcode == 0xfa && this.logOn) {
+      if (this.logOn) {
         console.log('0x' + this.registers.PC().toString(16) + ', 0x' + opcode.toString(16));
+        console.log(this.GPU.OAMDMAList);
       }
-      // if (this.registers.PC() == 0xc2c1) {
-      if (opcode == 0xfa) {
+      // if (this.registers.PC() == 0xff80) {
+      if (opcode == 0xe0) {
         // console.log(this.registers.PC().toString(16));
+        // console.log(this.MMU.readByte(this.registers.PC() + 1).toString(16));
+        // console.log(this.MMU.readByte(this.registers.PC() + 2).toString(16));
         // this.logOn = true;
       }
 
@@ -631,9 +638,10 @@ export default class CPU {
     
       this.instMap[opcode]();
 
-      if (opcode == 0xfa && this.logOn) {
+      if (this.logOn) {
+        // console.log('IME: ' + this.IME + ', divider: ' + this.clock.divider + ', dividerCycles: ' + this.clock.dividerCycles);
         // console.log('IME: ' + this.IME + ', timer: ' + (this.interrupt.interruptEnabled.timer && this.interrupt.interruptFlag.timer) + ', runningTimer: ' + this.clock.control.runningTimer + ', counter: ' + this.clock.counter);
-        console.log('after: ' + this.clock.counterCycles);
+        // console.log('after: ' + this.clock.counterCycles);
       }
     }
   }
@@ -675,18 +683,18 @@ export default class CPU {
   }
   LD_SP_HL() {
     this.registers.SP(this.registers.HL());
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   LDHL_SP_n(n) {
     this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(n)), this.isCarry(this.registers.SP(), this.signed(n)));
     this.registers.HL(this.registers.SP() + this.signed(n));
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   LD_nn_SP(nn) {
     this.MMU.writeWord(nn & 0xffff, this.registers.SP());
   }
   PUSH_nn(nn) {
-    this.clock.updateCycles(4);
+    this.clock.step();
     this.MMU.writeWord(this.registers.SP() - 2, nn() & 0xffff);
     this.registers.SP(this.registers.SP() - 2);
   }
@@ -799,21 +807,22 @@ export default class CPU {
     const byte = n();
     this.setFlag(this.registers.F.Z(), false, this.is16BitsHalfCarry(this.registers.HL(), byte), this.is16BitsCarry(this.registers.HL(), byte));
     this.registers.HL(this.registers.HL() + byte);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   ADD_SPn(n) {
     const byte = n();
     this.setFlag(false, false, this.isHalfCarry(this.registers.SP(), this.signed(byte)), this.isCarry(this.registers.SP(), this.signed(byte)));
     this.registers.SP(this.registers.SP() + this.signed(byte));
-    this.clock.updateCycles(8);
+    this.clock.step();
+    this.clock.step();
   }
   INC_nn(nn) {
     nn(nn() + 1);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   DEC_nn(nn) {
     nn(nn() - 1);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   // Miscellaneous
   SWAP_n(s, d) {
@@ -870,6 +879,7 @@ export default class CPU {
   }
   EI() {
     this.IME = true;
+    this.justEIExecuted = true;
   }
   // Rotates & Shifts
   RLCA() {
@@ -940,14 +950,15 @@ export default class CPU {
   // Jumps
   JP_nn(nn) {
     this.registers.PC(nn);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   JP_cc_nn(cc) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -955,7 +966,8 @@ export default class CPU {
       case 'Z':
         if (this.registers.F.Z() === 0) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -963,7 +975,8 @@ export default class CPU {
       case 'NC':
         if (this.registers.F.C()) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -971,7 +984,8 @@ export default class CPU {
       case 'C':
         if (this.registers.F.C() === 0) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -979,7 +993,7 @@ export default class CPU {
     }
 
     this.registers.PC(this.MMU.readWord(this.registers.PC()));
-    this.clock.updateCycles(4);
+    this.clock.step();
 
     return true;
   }
@@ -989,34 +1003,34 @@ export default class CPU {
   JR_n(n) {
     this.registers.PC(this.registers.PC() + this.signed(n));
   
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   JR_cc_n(cc) {
     switch (cc) {
       case 'NZ':
         if (this.registers.F.Z()) {
-          this.clock.updateCycles(4);
+          this.clock.step();
 
           return false;
         }
         break;
       case 'Z':
         if (this.registers.F.Z() === 0) {
-          this.clock.updateCycles(4);
+          this.clock.step();
 
           return false;
         }
         break;
       case 'NC':
         if (this.registers.F.C()) {
-          this.clock.updateCycles(4);
+          this.clock.step();
 
           return false;
         }
         break;
       case 'C':
         if (this.registers.F.C() === 0) {
-          this.clock.updateCycles(4);
+          this.clock.step();
 
           return false;
         }
@@ -1024,13 +1038,13 @@ export default class CPU {
     }
 
     this.registers.PC(this.registers.PC() + this.signed(this.MMU.readByte(this.registers.PC())));
-    this.clock.updateCycles(4);
+    this.clock.step();
 
     return true;
   }
   // Calls
   CALL_nn(nn) {
-    this.clock.updateCycles(4);
+    this.clock.step();
 
     this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC() + 2);
     this.registers.SP(this.registers.SP() - 2);
@@ -1042,7 +1056,8 @@ export default class CPU {
       case 'NZ':
         if (this.registers.F.Z()) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -1050,7 +1065,8 @@ export default class CPU {
       case 'Z':
         if (this.registers.F.Z() === 0) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -1058,7 +1074,8 @@ export default class CPU {
       case 'NC':
         if (this.registers.F.C()) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -1066,7 +1083,8 @@ export default class CPU {
       case 'C':
         if (this.registers.F.C() === 0) {
           this.registers.PC(this.registers.PC() + 2);
-          this.clock.updateCycles(8);
+          this.clock.step();
+          this.clock.step();
 
           return false;
         }
@@ -1079,7 +1097,7 @@ export default class CPU {
   }
   // Restarts
   RST_n(n) {
-    this.clock.updateCycles(4);
+    this.clock.step();
 
     this.MMU.writeWord(this.registers.SP() - 2, this.registers.PC());
     this.registers.SP(this.registers.SP() - 2);
@@ -1092,10 +1110,10 @@ export default class CPU {
 
     this.registers.PC(highByte << 8 | lowByte & 0xff);
     this.registers.SP(this.registers.SP() + 2);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
   RET_cc(cc) {
-    this.clock.updateCycles(4);
+    this.clock.step();
 
     switch (cc) {
       case 'NZ':

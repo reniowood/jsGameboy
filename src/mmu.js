@@ -88,6 +88,8 @@ export default class MMU {
       RAM: 0x01
     };
     this.bankingMode = this.BANKING_MODE.ROM;
+
+    this.isAccessible = true;
   }
   loadROM(rom) {
     this.ROM = rom;
@@ -100,9 +102,19 @@ export default class MMU {
       this.cartridgeRAM.push(0);
     }
   }
+  setAccessible() {
+    this.isAccessible = true;
+  }
+  setInaccessible() {
+    this.isAccessible = false;
+  }
   readByte(addr) {
+    if (!this.isAccessible && addr < 0xff80) {
+      return 0xff;
+    }
+    
     const byte = this._readByte(addr);
-    this.clock.updateCycles(4);
+    this.clock.step();
     return byte;
   }
   _readByte(addr) {
@@ -193,8 +205,12 @@ export default class MMU {
     }
   }
   writeByte(addr, value) {
+    if (!this.isAccessible && addr < 0xff80 && addr !== 0xff46) {
+      return 0xff;
+    }
+
     const byte = this._writeByte(addr, value);
-    this.clock.updateCycles(4);
+    this.clock.step();
     return byte;
   }
   _writeByte(addr, value) {
@@ -343,13 +359,7 @@ export default class MMU {
             } else if (addr === 0xff0f) { // IF
               return this.interrupt.setIF(value);
             } else if (addr === 0xff46) { // DMA
-              const base = 0xfe00;
-              for (let i=0; i<0xa0; i+=1) {
-                const val = this.readByte((value << 8) + i);
-
-                this.GPU.OAM[i] = val;
-                this.GPU.updateSprite(base + i, val);
-              }
+              this.GPU.startOAMDMA(value);
             } else {
               switch (addr & 0x00f0) {
                 case 0x40:
@@ -365,17 +375,25 @@ export default class MMU {
     }
   }
   readWord(addr) {
+    if (!this.isAccessible) {
+      return 0xffff;
+    }
+
     const highByte = this._readByte(addr + 1);
-    this.clock.updateCycles(4);
+    this.clock.step();
     const lowByte = this._readByte(addr);
-    this.clock.updateCycles(4);
+    this.clock.step();
     
     return highByte << 8 | lowByte;
   }
   writeWord(addr, value) {
+    if (!this.isAccessible) {
+      return 0xffff;
+    }
+
     this._writeByte(addr, value & 0xff);
-    this.clock.updateCycles(4);
+    this.clock.step();
     this._writeByte(addr + 1, (value >> 8) & 0xff);
-    this.clock.updateCycles(4);
+    this.clock.step();
   }
 }

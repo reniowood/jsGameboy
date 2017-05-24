@@ -106,6 +106,8 @@ export default class GPU {
     this.registers[0xff49 - 0xff40] = 0xff; // obp1
     this.registers[0xff4a - 0xff40] = 0x00; // wy
     this.registers[0xff4b - 0xff40] = 0x00; // wx
+
+    this.OAMDMAList = [];
   }
   signed(n) {
     if (n & 0x80) {
@@ -114,8 +116,8 @@ export default class GPU {
 
     return n;
   }
-  updateCycles(lastInstCycles) {
-    this.cycles += lastInstCycles;
+  step() {
+    this.cycles += 4;
 
     switch (this.mode) {
       case this.MODE.HBLANK:
@@ -186,6 +188,45 @@ export default class GPU {
         }
 
         break;
+    }
+
+    if (this.OAMDMAList.length > 0) {
+      this.stepOAMDMA();
+    }
+  }
+  startOAMDMA(value) {
+    this.OAMDMAList.push({
+      wait: 1,
+      highAddr: value << 8,
+      currAddr: 0,
+    });
+  }
+  stepOAMDMA() {
+    for (let i=this.OAMDMAList.length-1; i>=0; i-=1) {
+      let OAMDMA = this.OAMDMAList[i];
+
+      if (OAMDMA.wait > 0) {
+        OAMDMA.wait -= 1;
+      } else {
+        this.OAMDMAList.splice(0, i);
+        this.copyOAMDMA(OAMDMA);
+
+        break;
+      }
+    }
+  }
+  copyOAMDMA(OAMDMA) {
+    this.MMU.setInaccessible();
+
+    if (OAMDMA.currAddr === 0xa0) {
+      this.OAMDMAList.splice(0, 1);
+
+      this.MMU.setAccessible();
+    } else {
+      const val = this.MMU._readByte(OAMDMA.highAddr + OAMDMA.currAddr);
+      this.OAM[OAMDMA.currAddr] = val;
+      this.updateSprite(0xfe00 + OAMDMA.currAddr, val);
+      OAMDMA.currAddr += 1;
     }
   }
   updateSprite(addr, value) {

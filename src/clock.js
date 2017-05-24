@@ -25,10 +25,10 @@ export default class Clock {
       runningTimer: false
     };
   }
-  updateCycles(lastInstCycles) {
-    this.lastInstCycles = lastInstCycles;
+  step() {
+    this.lastInstCycles = 4;
 
-    this.dividerCycles += lastInstCycles;
+    this.dividerCycles += this.lastInstCycles;
     const cyclesPerDivider = this.CYCLES_PER_SECOND / this.DIVIDER_SPEED;
     if (this.dividerCycles >= cyclesPerDivider) {
       this.divider += Math.floor(this.dividerCycles / cyclesPerDivider);
@@ -39,7 +39,7 @@ export default class Clock {
     }
 
     if (this.control.runningTimer) {
-      this.counterCycles += lastInstCycles;
+      this.counterCycles += this.lastInstCycles;
       const cyclesPerCounter = this.CYCLES_PER_SECOND / this.control.counterSpeed;
       if (this.counterCycles >= cyclesPerCounter) {
         this.counter += Math.floor(this.counterCycles / cyclesPerCounter);
@@ -51,7 +51,7 @@ export default class Clock {
       }
     }
 
-    this.GPU.updateCycles(lastInstCycles);
+    this.GPU.step();
   }
   updateDivider(value) {
     this.divider = 0;

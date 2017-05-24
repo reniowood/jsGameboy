@@ -17,6 +17,7 @@ export default class Gameboy {
     this.interrupt.CPU = this.CPU;
     this.interrupt.clock = this.clock;
     this.GPU.interrupt = this.interrupt;
+    this.GPU.MMU = this.MMU;
     this.clock.CPU = this.CPU;
     this.clock.GPU = this.GPU;
     this.clock.interrupt = this.interrupt;
@@ -26,6 +27,7 @@ export default class Gameboy {
     this.MMU.input = this.input;
     this.CPU.interrupt = this.interrupt;
     this.CPU.MMU = this.MMU;
+    this.CPU.GPU = this.GPU;
     this.CPU.clock = this.clock;
 
     this.stop = undefined;
